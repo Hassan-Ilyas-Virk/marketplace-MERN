@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import LoadingSpinner from '../common/LoadingSpinner.js';
+import LoadingSpinner from '../Components/LoadingSpinner.js';
 
 const Login = () => {
   const [formData, setFormData] = useState({

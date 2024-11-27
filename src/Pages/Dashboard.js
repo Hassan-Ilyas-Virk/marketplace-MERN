@@ -1,5 +1,5 @@
 import React from 'react';
-import Navigation from '../Components/common/Navigation.js';
+import Navigation from '../Components/Navigation.js';
 
 const Dashboard = () => {
     const user = JSON.parse(localStorage.getItem('user'));
