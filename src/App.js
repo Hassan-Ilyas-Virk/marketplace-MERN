@@ -4,7 +4,7 @@ import Login from './Pages/Login.js';
 import Register from './Pages/Register.js';
 import ProtectedRoute from './routes/ProtectedRoute.js';
 import Dashboard from './Pages/Dashboard.js';
-import Homepage from './Pages/homepage.js';
+import Homepage from './Pages/Customer_homepage.js';
 
 function App() {
   return (
