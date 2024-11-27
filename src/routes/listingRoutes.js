@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, isSeller } from '../middleware/authMiddleware.js';
 import {
     getListings,
     createListing,
@@ -15,6 +15,5 @@ router.post('/', protect, isSeller, createListing);
 router.get('/:id', getListing);
 router.put('/:id', protect, isSeller, updateListing);
 router.delete('/:id', protect, isSeller, deleteListing);
-
 
 export default router; 
