@@ -55,7 +55,13 @@ const Login = () => {
       const response = await axios.post('http://localhost:5000/api/auth/login', formData);
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data));
-      navigate('/dashboard');
+      
+      // Redirect based on user role
+      if (response.data.role === 'Seller') {
+        navigate('/seller');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       setErrors({
         submit: error.response?.data?.message || 'An error occurred'

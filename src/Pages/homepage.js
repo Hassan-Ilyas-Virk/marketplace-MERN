@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import Navigation from '../Components/Navigation.js';
 import ListingItem from '../Components/listingItem.js';
+import Location from '../Components/location.js';
 
 const categories = [
   { id: 'mobiles', name: 'Mobiles', icon: '📱' },
@@ -26,13 +27,83 @@ const Homepage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRegion, setSelectedRegion] = useState(null);
 
   useEffect(() => {
     const fetchListings = async () => {
+      setLoading(true);
       try {
-        const response = await fetch('/api/listings'); // Adjust the endpoint as needed
-        const data = await response.json();
-        setListings(data);
+        // Temporarily using dummy data instead of API call
+        const dummyData = [
+          {
+            id: 1,
+            title: "iPhone 13 Pro Max",
+            price: 999.99,
+            category: "mobiles",
+            description: "Like new condition, includes original box and accessories",
+            image: "https://picsum.photos/400/300",
+            location: "New York"
+          },
+          {
+            id: 2,
+            title: "Toyota Camry 2020",
+            price: 25000,
+            category: "vehicles",
+            description: "Low mileage, excellent condition, single owner",
+            image: "https://picsum.photos/400/300",
+            location: "Los Angeles"
+          },
+          {
+            id: 3,
+            title: "3 BHK Apartment",
+            price: 350000,
+            category: "property-sale",
+            description: "Spacious apartment with modern amenities",
+            image: "https://picsum.photos/400/300",
+            location: "Chicago"
+          },
+          {
+            id: 4,
+            title: "MacBook Pro 16",
+            price: 2199.99,
+            category: "electronics",
+            description: "M1 Pro, 16GB RAM, 512GB SSD",
+            image: "https://picsum.photos/400/300",
+            location: "Seattle"
+          },
+          {
+            id: 5,
+            title: "Honda CBR 600RR",
+            price: 8500,
+            category: "bikes",
+            description: "2019 model, excellent condition, low miles",
+            image: "https://picsum.photos/400/300",
+            location: "Miami"
+          },
+          {
+            id: 6,
+            title: "Laptop Dell XPS 15",
+            price: 1799.99,
+            category: "electronics",
+            description: "2021 model, 32GB RAM, 1TB SSD",
+            image: "https://picsum.photos/400/300",
+            location: "Lahore"
+          },
+          {
+            id: 7,
+            title: "Toyota Corolla 2019",
+            price: 18000,
+            category: "vehicles",
+            description: "Well maintained, single owner",
+            image: "https://picsum.photos/400/300",
+            location: "Karachi"
+          },
+        ];
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setListings(dummyData);
       } catch (error) {
         console.error('Error fetching listings:', error);
       } finally {
@@ -50,9 +121,18 @@ const Homepage = () => {
   };
 
   const filteredListings = listings.filter(listing => {
-    if (selectedCategory === 'all') return true;
-    return listing.category === selectedCategory;
+    let categoryMatch = selectedCategory === 'all' || listing.category === selectedCategory;
+    let regionMatch = !selectedRegion || 
+      listing.location.toLowerCase().includes(selectedRegion.split(',')[0].toLowerCase());
+    let searchMatch = !searchQuery || 
+      listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      listing.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return categoryMatch && regionMatch && searchMatch;
   });
+
+  const handleRegionSelect = (region) => {
+    setSelectedRegion(region);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -91,6 +171,11 @@ const Homepage = () => {
         </div>
       </div>
 
+      {/* Location Filter */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <Location listings={listings} onLocationFilter={handleRegionSelect} />
+      </div>
+
       {/* Categories Section */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">All categories</h2>
@@ -112,16 +197,20 @@ const Homepage = () => {
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Featured Items</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">
+          {selectedRegion ? `Listings in ${selectedRegion}` : 'Featured Items'}
+        </h1>
         
         {loading ? (
           <div className="text-center">Loading...</div>
-        ) : (
+        ) : listings && listings.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredListings.map((listing, index) => (
               <ListingItem key={listing.id || index} listing={listing} />
             ))}
           </div>
+        ) : (
+          <div className="text-center">No listings found</div>
         )}
       </div>
     </div>

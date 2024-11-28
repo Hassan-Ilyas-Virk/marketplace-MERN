@@ -15,19 +15,24 @@ export const getListings = async (req, res) => {
 // Create new listing
 export const createListing = async (req, res) => {
     try {
-        const { title, description, price, category, images, location } = req.body;
-        const listing = await Listing.create({
+        // Handle uploaded files
+        const imageUrls = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
+
+        const listing = new Listing({
+            ...req.body,
             sellerId: req.user._id,
-            title,
-            description,
-            price,
-            category,
-            images,
-            location
+            images: imageUrls,
+            price: Number(req.body.price)
         });
-        res.status(201).json(listing);
+
+        const savedListing = await listing.save();
+        res.status(201).json(savedListing);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error creating listing:', error);
+        res.status(500).json({ 
+            message: 'Error creating listing',
+            error: error.message 
+        });
     }
 };
 
@@ -55,19 +60,50 @@ export const updateListing = async (req, res) => {
             return res.status(404).json({ message: 'Listing not found' });
         }
 
-        // Verify seller ownership
+        // Check if this is the seller's listing
         if (listing.sellerId.toString() !== req.user._id.toString()) {
-            return res.status(401).json({ message: 'Not authorized' });
+            return res.status(403).json({ message: 'Not authorized' });
         }
+
+        // If there are new files, handle them
+        const imageUrls = req.files 
+            ? req.files.map(file => `/uploads/${file.filename}`)
+            : listing.images;
+
+        const updatedData = {
+            ...req.body,
+            images: imageUrls
+        };
+
+        // If updating status, make sure it's a valid status
+        if (req.body.status) {
+            if (!['Active', 'Sold', 'Pending'].includes(req.body.status)) {
+                return res.status(400).json({ message: 'Invalid status value' });
+            }
+            updatedData.status = req.body.status;
+        }
+
+        // Convert price to number if it exists in the request
+        if (req.body.price) {
+            updatedData.price = Number(req.body.price);
+        }
+
+        console.log('Updating with data:', updatedData); // Debug log
 
         const updatedListing = await Listing.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            updatedData,
             { new: true }
         );
+
+        console.log('Updated listing:', updatedListing); // Debug log
         res.json(updatedListing);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error updating listing:', error);
+        res.status(500).json({ 
+            message: 'Error updating listing',
+            error: error.message 
+        });
     }
 };
 
@@ -80,14 +116,38 @@ export const deleteListing = async (req, res) => {
             return res.status(404).json({ message: 'Listing not found' });
         }
 
-        // Verify seller ownership
+        // Check if this is the seller's listing
         if (listing.sellerId.toString() !== req.user._id.toString()) {
-            return res.status(401).json({ message: 'Not authorized' });
+            return res.status(403).json({ message: 'Not authorized' });
         }
 
-        await listing.remove();
-        res.json({ message: 'Listing removed' });
+        await Listing.findByIdAndDelete(req.params.id);
+        
+        res.json({ message: 'Listing deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error deleting listing:', error);
+        res.status(500).json({ 
+            message: 'Error deleting listing',
+            error: error.message 
+        });
+    }
+};
+
+export const getSellerListings = async (req, res) => {
+    try {
+        console.log('Seller ID:', req.user._id); // Debug log
+        
+        const listings = await Listing.find({ sellerId: req.user._id })
+            .sort({ createdAt: -1 });
+        
+        console.log('Found listings:', listings); // Debug log
+        
+        res.json(listings);
+    } catch (error) {
+        console.error('Error in getSellerListings:', error);
+        res.status(500).json({ 
+            message: 'Error fetching seller listings',
+            error: error.message 
+        });
     }
 }; 
