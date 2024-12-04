@@ -6,8 +6,12 @@ import mongoose from 'mongoose';
 import authRoutes from './src/routes/authRoutes.js';
 import listingRoutes from './src/routes/listingRoutes.js';
 import userRoutes from './src/routes/userRoutes.js';
+import favoriteRoutes from './src/routes/favoriteRoutes.js';
+import feedbackRoutes from './src/routes/feedbackRoutes.js';
+import chatRoutes from './src/routes/chatRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -15,18 +19,32 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true
+}));
 app.use(morgan('dev'));
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api', favoriteRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/chats', chatRoutes);
 
-// Serve static files from uploads directory
+// ES Module fix for __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(uploadsDir));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)

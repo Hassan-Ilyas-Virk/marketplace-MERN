@@ -1,11 +1,29 @@
 import Listing from '../models/Listing.js';
 
+// Add this new utility function at the top of the file
+const incrementViewCount = async (listings) => {
+    if (!Array.isArray(listings)) {
+        listings = [listings];
+    }
+    
+    return Promise.all(listings.map(listing => 
+        Listing.findByIdAndUpdate(
+            listing._id,
+            { $inc: { views: 1 } },
+            { new: true }
+        )
+    ));
+};
+
 // Get all listings
 export const getListings = async (req, res) => {
     try {
         const listings = await Listing.find()
-            .populate('sellerId', 'name email')
+            .populate('sellerId', 'name email profilePicture')
             .sort({ createdAt: -1 });
+            
+        await incrementViewCount(listings);
+        
         res.json(listings);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -39,14 +57,18 @@ export const createListing = async (req, res) => {
 // Get single listing
 export const getListing = async (req, res) => {
     try {
+        console.log('Getting listing with ID:', req.params.id);
+
         const listing = await Listing.findById(req.params.id)
-            .populate('sellerId', 'name email');
+            .populate('sellerId', 'name email profilePicture');
+        
         if (listing) {
             res.json(listing);
         } else {
             res.status(404).json({ message: 'Listing not found' });
         }
     } catch (error) {
+        console.error('Error in getListing:', error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -133,15 +155,20 @@ export const deleteListing = async (req, res) => {
     }
 };
 
+// Update getSellerListings function
 export const getSellerListings = async (req, res) => {
     try {
-        console.log('Seller ID:', req.user._id); // Debug log
-        
-        const listings = await Listing.find({ sellerId: req.user._id })
+        // Use sellerId from params or from authenticated user
+        const sellerId = req.params.sellerId || req.user._id;
+
+        const listings = await Listing.find({ sellerId })
+            .populate('sellerId', 'name email profilePicture')
             .sort({ createdAt: -1 });
-        
-        console.log('Found listings:', listings); // Debug log
-        
+
+        if (!listings) {
+            return res.status(404).json({ message: 'No listings found' });
+        }
+
         res.json(listings);
     } catch (error) {
         console.error('Error in getSellerListings:', error);

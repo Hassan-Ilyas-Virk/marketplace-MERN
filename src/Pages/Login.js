@@ -60,7 +60,7 @@ const Login = () => {
       if (response.data.role === 'Seller') {
         navigate('/seller');
       } else {
-        navigate('/dashboard');
+        navigate('/');
       }
     } catch (error) {
       setErrors({

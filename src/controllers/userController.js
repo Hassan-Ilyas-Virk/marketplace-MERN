@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
+import Listing from '../models/Listing.js';
 
 export const updateProfile = async (req, res) => {
     try {
@@ -110,4 +111,26 @@ export const uploadProfilePic = async (req, res) => {
         console.error('Profile image upload error:', error);
         res.status(500).json({ message: 'Error uploading profile image' });
     }
+};
+
+export const getUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getSellerListings = async (req, res) => {
+  try {
+    const listings = await Listing.find({ sellerId: req.params.id })
+      .sort({ createdAt: -1 });
+    res.json(listings);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
 };

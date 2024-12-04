@@ -21,7 +21,8 @@ const userSchema = new mongoose.Schema({
     default: 'Customer'
   },
   profileImage: {
-    type: String
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

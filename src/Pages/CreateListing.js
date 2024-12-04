@@ -20,12 +20,10 @@ const CreateListing = () => {
 
   // Categories with their icons and condition applicability
   const categories = [
-    { value: 'mobiles', label: 'Mobiles', icon: '📱', hasCondition: true },
     { value: 'vehicles', label: 'Vehicles', icon: '🚗', hasCondition: true },
     { value: 'property-sale', label: 'Property For Sale', icon: '🏠', hasCondition: false },
     { value: 'property-rent', label: 'Property For Rent', icon: '🏢', hasCondition: false },
     { value: 'electronics', label: 'Electronics', icon: '💻', hasCondition: true },
-    { value: 'bikes', label: 'Bikes', icon: '🚲', hasCondition: true },
     { value: 'business', label: 'Business', icon: '💼', hasCondition: false },
     { value: 'services', label: 'Services', icon: '🔧', hasCondition: false }
   ];
