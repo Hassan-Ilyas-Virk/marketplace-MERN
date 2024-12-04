@@ -6,12 +6,10 @@ import ListingStats from '../Components/ListingStats.js';
 
 const categories = [
   { id: 'all', name: 'All Listings', icon: '📋' },
-  { id: 'mobiles', name: 'Mobiles', icon: '📱' },
   { id: 'vehicles', name: 'Vehicles', icon: '🚗' },
   { id: 'property-sale', name: 'Property For Sale', icon: '🏠' },
   { id: 'property-rent', name: 'Property For Rent', icon: '🔑' },
   { id: 'electronics', name: 'Electronics & Home Appliances', icon: '📷' },
-  { id: 'bikes', name: 'Bikes', icon: '🏍️' },
   { id: 'business', name: 'Business, Industrial & Agriculture', icon: '🚜' },
   { id: 'services', name: 'Services', icon: '🔧' }
 ];
@@ -35,13 +33,15 @@ const SellerHomepage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch listings');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch listings');
       }
 
       const data = await response.json();
       setListings(data);
       setError(null);
     } catch (err) {
+      console.error('Error fetching listings:', err);
       setError(err.message);
     } finally {
       setLoading(false);

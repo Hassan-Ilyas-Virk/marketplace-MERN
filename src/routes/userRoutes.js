@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
-import { updateProfile, uploadProfilePic } from '../controllers/userController.js';
+import { updateProfile, uploadProfilePic, getUser, getSellerListings } from '../controllers/userController.js';
 import multer from 'multer';
 
 const router = express.Router();
@@ -20,5 +20,7 @@ const upload = multer({ storage: storage });
 
 router.put('/update-profile', protect, updateProfile);
 router.post('/upload-profile-pic', protect, upload.single('image'), uploadProfilePic);
+router.get('/:id', getUser);
+router.get('/:id/listings', getSellerListings);
 
 export default router; 

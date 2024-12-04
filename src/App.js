@@ -5,9 +5,11 @@ import Register from './Pages/Register.js';
 import ProtectedRoute from './routes/ProtectedRoute.js';
 import CustomerRoute from './routes/CustomerRoute.js';
 import Dashboard from './Pages/Dashboard.js';
-import Homepage from './Pages/homepage.js';
+import Homepage from './Pages/Customer_homepage.js';
 import SellerHomepage from './Pages/SellerHomepage.js';
 import CreateListing from './Pages/CreateListing.js';
+import SellerProfile from './Pages/SellerProfile.js';
+import UserProfile from './Pages/UserProfile.js';
 
 function App() {
   return (
@@ -44,6 +46,22 @@ function App() {
           element={
             <ProtectedRoute>
               <CreateListing />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/seller/:sellerId" 
+          element={
+            <CustomerRoute>
+              <SellerProfile />
+            </CustomerRoute>
+          } 
+        />
+        <Route 
+          path="/user/:userId" 
+          element={
+            <ProtectedRoute>
+              <UserProfile />
             </ProtectedRoute>
           } 
         />

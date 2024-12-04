@@ -45,23 +45,33 @@ const Navigation = () => {
             {/* Navigation Links */}
             <div className="hidden md:flex space-x-8">
               <Link
-                to="/dashboard"
-                className={`${isActive('/dashboard')} hover:text-[#438951] px-3 py-2 rounded-md text-sm font-medium transition-colors`}
+                to={`/user/${user?._id}`}
+                className={`${isActive(`/user/${user?._id}`)} hover:text-[#438951] px-3 py-2 rounded-md text-sm font-medium transition-colors`}
               >
                 Profile
               </Link>
               <Link
-                to="/seller"
-                className={`${isActive('/seller')} hover:text-[#438951] px-3 py-2 rounded-md text-sm font-medium transition-colors`}
+                to="/chat"
+                className={`${isActive('/chat')} hover:text-[#438951] px-3 py-2 rounded-md text-sm font-medium transition-colors`}
               >
-                My Listings
+                Chat
               </Link>
-              <Link
-                to="/create-listing"
-                className={`${isActive('/create-listing')} hover:text-[#438951] px-3 py-2 rounded-md text-sm font-medium transition-colors`}
-              >
-                Create Listing
-              </Link>
+              {user?.role === 'Seller' && (
+                <>
+                  <Link
+                    to="/seller"
+                    className={`${isActive('/seller')} hover:text-[#438951] px-3 py-2 rounded-md text-sm font-medium transition-colors`}
+                  >
+                    My Listings
+                  </Link>
+                  <Link
+                    to="/create-listing"
+                    className={`${isActive('/create-listing')} hover:text-[#438951] px-3 py-2 rounded-md text-sm font-medium transition-colors`}
+                  >
+                    Create Listing
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 

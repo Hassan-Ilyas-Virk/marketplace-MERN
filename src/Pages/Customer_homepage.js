@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import Navigation from '../Components/Navigation.js';
 import ListingItem from '../Components/listingItem.js';
 import Location from '../Components/location.js';
+import ListingDetailModal from '../Components/ListingDetailModal.js';
 
 const categories = [
   { id: 'all', name: 'All Categories', icon: '🔍' },
@@ -10,7 +11,6 @@ const categories = [
   { id: 'property-sale', name: 'Property For Sale', icon: '🏠' },
   { id: 'property-rent', name: 'Property For Rent', icon: '🔑' },
   { id: 'electronics', name: 'Electronics & Home Appliances', icon: '📷' },
-
   { id: 'business', name: 'Business, Industrial & Agriculture', icon: '🚜' },
   { id: 'services', name: 'Services', icon: '🔧' }
 ];
@@ -28,82 +28,17 @@ const Homepage = () => {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState(null);
+  const [selectedListing, setSelectedListing] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchListings = async () => {
       setLoading(true);
       try {
-        // Temporarily using dummy data instead of API call
-        const dummyData = [
-          {
-            id: 1,
-            title: "iPhone 13 Pro Max",
-            price: 999.99,
-            category: "electro",
-            description: "Like new condition, includes original box and accessories",
-            image: "https://picsum.photos/400/300",
-            location: "New York"
-          },
-          {
-            id: 2,
-            title: "Toyota Camry 2020",
-            price: 25000,
-            category: "vehicles",
-            description: "Low mileage, excellent condition, single owner",
-            image: "https://picsum.photos/400/300",
-            location: "Los Angeles"
-          },
-          {
-            id: 3,
-            title: "3 BHK Apartment",
-            price: 350000,
-            category: "property-sale",
-            description: "Spacious apartment with modern amenities",
-            image: "https://picsum.photos/400/300",
-            location: "Chicago"
-          },
-          {
-            id: 4,
-            title: "MacBook Pro 16",
-            price: 2199.99,
-            category: "electronics",
-            description: "M1 Pro, 16GB RAM, 512GB SSD",
-            image: "https://picsum.photos/400/300",
-            location: "Seattle"
-          },
-          {
-            id: 5,
-            title: "Honda CBR 600RR",
-            price: 8500,
-            category: "bikes",
-            description: "2019 model, excellent condition, low miles",
-            image: "https://picsum.photos/400/300",
-            location: "Miami"
-          },
-          {
-            id: 6,
-            title: "Laptop Dell XPS 15",
-            price: 1799.99,
-            category: "electronics",
-            description: "2021 model, 32GB RAM, 1TB SSD",
-            image: "https://picsum.photos/400/300",
-            location: "Lahore"
-          },
-          {
-            id: 7,
-            title: "Toyota Corolla 2019",
-            price: 18000,
-            category: "vehicles",
-            description: "Well maintained, single owner",
-            image: "https://picsum.photos/400/300",
-            location: "Karachi"
-          },
-        ];
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        setListings(dummyData);
+        // Fetch listings from the database
+        const response = await fetch('http://localhost:5000/api/listings'); 
+        const data = await response.json();
+        setListings(data);
       } catch (error) {
         console.error('Error fetching listings:', error);
       } finally {
@@ -132,6 +67,16 @@ const Homepage = () => {
 
   const handleRegionSelect = (region) => {
     setSelectedRegion(region);
+  };
+
+  const handleListingClick = (listing) => {
+    setSelectedListing(listing);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedListing(null);
   };
 
   return (
@@ -206,13 +151,20 @@ const Homepage = () => {
         ) : listings && listings.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredListings.map((listing, index) => (
-              <ListingItem key={listing.id || index} listing={listing} />
+              <div key={listing.id || index} onClick={() => handleListingClick(listing)}>
+                <ListingItem listing={listing} />
+              </div>
             ))}
           </div>
         ) : (
           <div className="text-center">No listings found</div>
         )}
       </div>
+
+      {/* Listing Detail Modal */}
+      {isModalOpen && (
+        <ListingDetailModal listing={selectedListing} onClose={closeModal} />
+      )}
     </div>
   );
 };

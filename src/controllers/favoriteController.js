@@ -5,23 +5,47 @@ import Listing from '../models/Listing.js';
 export const addToFavorites = async (req, res) => {
     try {
         const { listingId } = req.body;
+        const userId = req.user._id;
+
+        console.log('Adding favorite:', {
+            userId: userId,
+            listingId: listingId
+        });
 
         // Check if the listing exists
         const listing = await Listing.findById(listingId);
         if (!listing) {
+            console.log('Listing not found:', listingId);
             return res.status(404).json({ message: 'Listing not found' });
+        }
+
+        // Check if favorite already exists
+        const existingFavorite = await Favorite.findOne({
+            customerId: userId,
+            listingId: listingId
+        });
+
+        if (existingFavorite) {
+            console.log('Favorite already exists');
+            return res.status(400).json({ message: 'Already in favorites' });
         }
 
         // Create a new favorite
         const favorite = new Favorite({
-            customerId: req.user._id,
+            customerId: userId,
             listingId: listingId
         });
 
         await favorite.save();
+        console.log('Favorite saved successfully');
         res.status(201).json({ message: 'Added to favorites', favorite });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Server error in addToFavorites:', error);
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 };
 
@@ -29,10 +53,16 @@ export const addToFavorites = async (req, res) => {
 export const removeFromFavorites = async (req, res) => {
     try {
         const { listingId } = req.body;
+        const userId = req.user._id;
+
+        console.log('Removing favorite:', {
+            userId: userId,
+            listingId: listingId
+        });
 
         // Find and remove the favorite
         const favorite = await Favorite.findOneAndDelete({
-            customerId: req.user._id,
+            customerId: userId,
             listingId: listingId
         });
 
@@ -40,9 +70,14 @@ export const removeFromFavorites = async (req, res) => {
             return res.status(404).json({ message: 'Favorite not found' });
         }
 
+        console.log('Favorite removed successfully');
         res.status(200).json({ message: 'Removed from favorites' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Server error in removeFromFavorites:', error);
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
     }
 };
 

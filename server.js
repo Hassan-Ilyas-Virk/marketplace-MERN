@@ -6,6 +6,8 @@ import mongoose from 'mongoose';
 import authRoutes from './src/routes/authRoutes.js';
 import listingRoutes from './src/routes/listingRoutes.js';
 import userRoutes from './src/routes/userRoutes.js';
+import favoriteRoutes from './src/routes/favoriteRoutes.js';
+import feedbackRoutes from './src/routes/feedbackRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -22,7 +24,8 @@ app.use(morgan('dev'));
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/users', userRoutes);
-
+app.use('/api', favoriteRoutes);
+app.use('/api/feedback', feedbackRoutes);
 // Serve static files from uploads directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

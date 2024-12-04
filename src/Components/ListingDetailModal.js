@@ -28,13 +28,13 @@ const ListingDetailModal = ({ listing, onClose }) => {
 
         <div className="flex flex-col md:flex-row">
           {/* Image carousel */}
-          <div className="relative w-full md:w-1/2">
-            <div className="relative h-64 md:h-96">
+          <div className="relative w-full md:w-1/2 md:min-h-[600px]">
+            <div className="relative h-64 md:h-full">
               {listing.images && listing.images.length > 0 ? (
                 <img
                   src={`http://localhost:5000${listing.images[currentImageIndex]}`}
                   alt={`${listing.title} - Image ${currentImageIndex + 1}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center">
@@ -85,6 +85,11 @@ const ListingDetailModal = ({ listing, onClose }) => {
             <p className="text-2xl font-bold text-green-600 mb-4">
               ${listing.price}
             </p>
+
+            <div className="mb-4">
+              <h3 className="font-semibold">Listed by</h3>
+              <p className="text-gray-600">{listing.sellerId?.name || 'Unknown Seller'}</p>
+            </div>
 
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2">Description</h3>

@@ -12,6 +12,7 @@ import {
 
 const router = express.Router();
 
+router.get('/seller/:sellerId', getSellerListings);
 router.get('/seller', protect, isSeller, getSellerListings);
 router.get('/', getListings);
 router.post('/', protect, isSeller, upload.array('images', 5), createListing);
