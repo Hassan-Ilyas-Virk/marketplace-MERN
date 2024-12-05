@@ -138,20 +138,26 @@ const ListingItem = ({ listing }) => {
   } = listing;
 
   return (
-    <div className="max-w-sm mx-auto bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-      {/* Image */}
-      <div className="w-full h-48 overflow-hidden relative">
+    <div className="max-w-sm mx-auto bg-white shadow-md rounded-lg overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-xl">
+      {/* Image Container with Hover Effect */}
+      <div className="w-full h-64 overflow-hidden relative group">
         {images && images.length > 0 ? (
           <img
             src={`http://localhost:5000${images[0]}`}
             alt={title}
-            className="object-cover w-full h-full"
+            className="object-cover w-full h-full transition-all duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex items-center justify-center w-full h-full bg-gray-100 text-gray-500">
             No image available
           </div>
         )}
+        {/* Updated overlay with gradient fade and no blur */}
+        <div 
+          className="absolute inset-0 bg-gradient-to-t from-white/70 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500"
+        ></div>
+        
+        {/* Favorite button with updated styling */}
         <button
           onClick={handleFavoriteClick}
           className="absolute top-2 right-2 p-2 rounded-full bg-white bg-opacity-75 hover:bg-opacity-100 transition-all z-10"
@@ -171,6 +177,14 @@ const ListingItem = ({ listing }) => {
               d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
             />
           </svg>
+        </button>
+
+        {/* View Full Image button with updated background */}
+        <button
+          className="absolute bottom-4 right-4 bg-white/90 hover:bg-white text-gray-800 px-4 py-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-md"
+          onClick={() => window.open(`http://localhost:5000${images[0]}`, '_blank')}
+        >
+          View Full Image
         </button>
       </div>
 

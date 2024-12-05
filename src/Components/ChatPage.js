@@ -163,23 +163,10 @@ const ChatPage = () => {
     return isCustomer ? chat.sellerId : chat.customerId;
   };
 
-  const handleProfileClick = async (userId) => {
+  const handleProfileClick = async (otherParty) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch user details');
-      
-      const userData = await response.json();
-      
-      if (userData.isSeller) {
-        navigate(`/seller/${userId}`);
-      } else {
-        navigate(`/customer/${userId}`);
-      }
+      // Always navigate to the seller's profile
+      navigate(`/seller/${otherParty._id}`);
     } catch (error) {
       console.error('Error navigating to profile:', error);
     }
@@ -298,7 +285,7 @@ const ChatPage = () => {
                             </div>
                             <h3 
                               className="text-lg font-semibold text-[#3B4540] hover:text-[#438951] cursor-pointer"
-                              onClick={() => handleProfileClick(otherParty._id)}
+                              onClick={() => handleProfileClick(otherParty)}
                             >
                               {otherParty?.name}
                             </h3>

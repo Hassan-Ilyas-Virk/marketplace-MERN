@@ -96,3 +96,15 @@ export const isFavorite = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+// Get user's favorite listings
+export const getUserFavorites = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const favorites = await Favorite.find({ customerId: userId }).populate('listingId');
+        const favoriteListings = favorites.map(fav => fav.listingId);
+        res.status(200).json(favoriteListings);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};

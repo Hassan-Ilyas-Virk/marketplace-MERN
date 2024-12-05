@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Select from 'react-select';
 
-const Location = ({ listings, onLocationFilter }) => {
+const Location = ({ listings, onLocationFilter, locationData }) => {
   const [options, setOptions] = useState([]);
   const [cityData, setCityData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const API_KEY = process.env.REACT_APP_API_NINJAS_KEY;
+
+  useEffect(() => {
+    if (locationData) {
+      setCityData(locationData);
+    }
+  }, [locationData]);
 
   const handleSearch = async (inputValue) => {
     if (!inputValue) {
@@ -64,19 +70,17 @@ const Location = ({ listings, onLocationFilter }) => {
         value={cityData}
         onChange={handleLocationSelect}
         onInputChange={(value) => {
-          // Debounce the API call to prevent too many requests
           clearTimeout(window.searchTimeout);
           window.searchTimeout = setTimeout(() => {
             handleSearch(value);
           }, 300);
         }}
         placeholder="Search for a city..."
-        className="w-full max-w-md"
+        className="w-[300px]"
         noOptionsMessage={({ inputValue }) => 
           !inputValue ? "Type to search..." : "No cities found"
         }
       />
-      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>
   );
 };
