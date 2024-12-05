@@ -99,18 +99,26 @@ const SellerProfile = () => {
   };
 
   const handleFeedbackSubmit = async () => {
-    // Refresh feedbacks after submission
-    const feedbackResponse = await fetch(
-      `http://localhost:5000/api/feedback/seller/${sellerId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+    try {
+      // Assume feedback submission logic here
+      // ...
+
+      // Refresh feedbacks after submission
+      const feedbackResponse = await fetch(
+        `http://localhost:5000/api/feedback/user/${sellerId}?page=${currentPage}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
         }
+      );
+      if (feedbackResponse.ok) {
+        const feedbackData = await feedbackResponse.json();
+        setFeedbacks(feedbackData);
+        setTotalPages(feedbackData.totalPages);
       }
-    );
-    if (feedbackResponse.ok) {
-      const feedbackData = await feedbackResponse.json();
-      setFeedbacks(feedbackData);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
     }
   };
 
@@ -180,85 +188,88 @@ const SellerProfile = () => {
   
         </div>
 
+        {/* Only show categories, analytics, and listings if there are listings */}
+        {listings.length > 0 && (
+          <>
+            {/* Categories Section */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-[#3B4540] mb-6">Filter by category</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-4">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`flex flex-col items-center p-4 rounded-lg transition-all
+                      ${selectedCategory === category.id 
+                        ? 'bg-[#438951] text-white shadow-md transform scale-105' 
+                        : 'bg-white hover:bg-[#F3F8F3] border border-[#D1E7D2] hover:shadow-md'
+                      }`}
+                  >
+                    <div className="w-12 h-12 flex items-center justify-center text-2xl mb-2">
+                      {category.icon}
+                    </div>
+                    <span className="text-sm text-center">
+                      {category.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* Categories Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#3B4540] mb-6">Filter by category</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-4">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`flex flex-col items-center p-4 rounded-lg transition-all
-                  ${selectedCategory === category.id 
-                    ? 'bg-[#438951] text-white shadow-md transform scale-105' 
-                    : 'bg-white hover:bg-[#F3F8F3] border border-[#D1E7D2] hover:shadow-md'
-                  }`}
-              >
-                <div className="w-12 h-12 flex items-center justify-center text-2xl mb-2">
-                  {category.icon}
+            {/* Analytics Section */}
+            {!loading && !error && (
+              <div className="p-4">
+                <h2 className="text-2xl font-bold text-[#3B4540] mb-6">Listing Analytics</h2>
+                <ListingStats listings={filteredListings} />
+              </div>
+            )}
+
+            {/* Listings Section */}
+            <div className="p-4">
+              <h2 className="text-2xl font-bold text-[#3B4540] mt-8 mb-6">
+                Listings by {seller?.name}
+              </h2>
+
+              {loading ? (
+                <div className="text-center py-8">Loading...</div>
+              ) : error ? (
+                <div className="text-center py-8">
+                  <p className="text-red-500">{error}</p>
                 </div>
-                <span className="text-sm text-center">
-                  {category.name}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Analytics Section */}
-        {!loading && !error && (
-          <div className="p-4">
-            <h2 className="text-2xl font-bold text-[#3B4540] mb-6">Listing Analytics</h2>
-            <ListingStats listings={filteredListings} />
-          </div>
+              ) : filteredListings.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-[#405449]">
+                    {selectedCategory === 'all' 
+                      ? "This seller hasn't created any listings yet."
+                      : `No listings found in the ${categories.find(c => c.id === selectedCategory)?.name} category.`
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredListings.map(listing => (
+                    <div key={listing._id} onClick={() => handleListingClick(listing)}>
+                      <ListingItem 
+                        listing={{
+                          ...listing,
+                          sellerId: {
+                            ...listing.sellerId,
+                            name: seller?.name
+                          }
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
-
-        {/* Listings Section */}
-        <div className="p-4">
-          <h2 className="text-2xl font-bold text-[#3B4540] mt-8 mb-6">
-            Listings by {seller?.name}
-          </h2>
-
-          {loading ? (
-            <div className="text-center py-8">Loading...</div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <p className="text-red-500">{error}</p>
-            </div>
-          ) : filteredListings.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-[#405449]">
-                {selectedCategory === 'all' 
-                  ? "This seller hasn't created any listings yet."
-                  : `No listings found in the ${categories.find(c => c.id === selectedCategory)?.name} category.`
-                }
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredListings.map(listing => (
-                <div key={listing._id} onClick={() => handleListingClick(listing)}>
-                  <ListingItem 
-                    listing={{
-                      ...listing,
-                      sellerId: {
-                        ...listing.sellerId,
-                        name: seller?.name
-                      }
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Add Modal Component */}
         {isModalOpen && (
           <ListingDetailModal listing={selectedListing} onClose={closeModal} />
         )}
-
 
         {/* Add FeedbackModal */}
         <div className="py-8">
@@ -275,12 +286,6 @@ const SellerProfile = () => {
           />
         </div>
 
-
-
-
-
-
-        
         {/* Feedback Section */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-2xl font-bold text-[#3B4540] mb-6">Feedback</h2>

@@ -54,9 +54,9 @@ function App() {
         <Route 
           path="/seller/:sellerId" 
           element={
-            <CustomerRoute>
+            <ProtectedRoute>
               <SellerProfile />
-            </CustomerRoute>
+            </ProtectedRoute>
           } 
         />
         <Route 

@@ -23,14 +23,10 @@ const CustomerProfile = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch current user data
-        const userResponse = await fetch('http://localhost:5000/api/users/me', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
+        // Get current user from localStorage
+        const currentUserData = localStorage.getItem('user');
+        if (currentUserData) {
+          const userData = JSON.parse(currentUserData);
           setCurrentUser(userData);
         }
 
@@ -241,7 +237,6 @@ const CustomerProfile = () => {
             setEditingFeedback(null);
           }}
           userId={customerId}
-          sellerId={currentUser?._id}
           onSubmit={handleFeedbackSubmit}
           editingFeedback={editingFeedback}
         />
