@@ -10,6 +10,8 @@ import SellerHomepage from './Pages/SellerHomepage.js';
 import CreateListing from './Pages/CreateListing.js';
 import SellerProfile from './Pages/SellerProfile.js';
 import UserProfile from './Pages/UserProfile.js';
+import ChatPage from './Components/ChatPage.js';
+import CustomerProfile from './Pages/CustomerProfile.js';
 
 function App() {
   return (
@@ -65,6 +67,15 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/chat" 
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="/customer/:customerId" element={<CustomerProfile />} />
       </Routes>
     </Router>
   );

@@ -81,6 +81,48 @@ const ListingItem = ({ listing }) => {
     navigate(`/seller/${id}`);
   };
 
+  const handleContactSeller = async (e) => {
+    e.stopPropagation();
+    const user = JSON.parse(localStorage.getItem('user'));
+    
+    if (!user) {
+        alert('Please log in to contact seller');
+        return;
+    }
+
+    try {
+        if (user._id === listing.sellerId._id) {
+            alert("You cannot message yourself!");
+            return;
+        }
+
+        const response = await fetch('http://localhost:5000/api/chats', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                customerId: user._id,
+                sellerId: typeof listing.sellerId === 'object' ? listing.sellerId._id : listing.sellerId
+            })
+        });
+
+        if (response.ok) {
+            const chat = await response.json();
+            console.log('Chat created:', chat);
+            navigate('/chat');
+        } else {
+            const errorData = await response.json();
+            console.error('Error response:', errorData);
+            alert(errorData.message || 'Failed to create chat');
+        }
+    } catch (error) {
+        console.error('Error creating chat:', error);
+        alert('Error creating chat. Please try again.');
+    }
+  };
+
   if (!listing) return <p className="text-center text-gray-500">Loading...</p>;
 
   const {
@@ -181,8 +223,11 @@ const ListingItem = ({ listing }) => {
             {isFavorite ? 'Saved' : 'Save'}
           </button>
         </div>
-        <button className="bg-green-500 text-white text-sm px-4 py-2 rounded hover:bg-green-600">
-          Contact Seller
+        <button 
+            onClick={handleContactSeller}
+            className="bg-green-500 text-white text-sm px-4 py-2 rounded hover:bg-green-600"
+        >
+            Contact Seller
         </button>
       </div>
     </div>
