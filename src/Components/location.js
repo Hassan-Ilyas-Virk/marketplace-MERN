@@ -20,32 +20,34 @@ const Location = ({ listings, onLocationFilter, locationData }) => {
       setOptions([]);
       return;
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(
         `https://api.api-ninjas.com/v1/city?name=${inputValue}&limit=10`,
         {
           headers: {
-            'X-Api-Key': API_KEY
-          }
+            'X-Api-Key': API_KEY,
+          },
         }
       );
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch cities');
       }
 
       const data = await response.json();
       const cityOptions = data
-        .filter(city => city.name.toLowerCase().startsWith(inputValue.toLowerCase()))
-        .map(city => ({
+        .filter((city) =>
+          city.name.toLowerCase().startsWith(inputValue.toLowerCase())
+        )
+        .map((city) => ({
           value: `${city.name}, ${city.country}`,
-          label: `${city.name}, ${city.country}`
+          label: `${city.name}, ${city.country}`,
         }));
-      
+
       setOptions(cityOptions);
     } catch (err) {
       setError('Failed to fetch cities');
@@ -76,9 +78,19 @@ const Location = ({ listings, onLocationFilter, locationData }) => {
           }, 300);
         }}
         placeholder="Search for a city..."
-        className="w-[300px]"
-        noOptionsMessage={({ inputValue }) => 
-          !inputValue ? "Type to search..." : "No cities found"
+        className="w-full"
+        styles={{
+          control: (base) => ({
+            ...base,
+            width: '100%', // Ensures the dropdown adapts to its parent container
+          }),
+          menu: (base) => ({
+            ...base,
+            width: '100%', // Matches the dropdown width to the container
+          }),
+        }}
+        noOptionsMessage={({ inputValue }) =>
+          !inputValue ? 'Type to search...' : 'No cities found'
         }
       />
     </div>

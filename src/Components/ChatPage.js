@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import Navigation from './Navigation.js';
 import { useNavigate, Link } from 'react-router-dom';
 import ImageViewerModal from './ImageViewerModal.js';
+import LoadingSpinner from './LoadingSpinner.js';
+import { motion } from 'framer-motion';
 
 const ChatPage = () => {
   const [chats, setChats] = useState([]);
@@ -200,319 +202,361 @@ const ChatPage = () => {
     return `http://localhost:5000/uploads/${user.profileImage.replace('/uploads/', '')}`;
   };
 
+  // Add this function before the return statement
+  const getMessagePreview = (msg) => {
+    if (!msg) return 'No messages yet';
+    if (msg.message) return msg.message;
+    if (msg.file) {
+      if (msg.file.match(/\.(jpg|jpeg|png|gif)$/i)) return '🖼️ Image';
+      if (msg.file.match(/\.(mp4|webm)$/i)) return '🎥 Video';
+      return '📎 File';
+    }
+    return 'No messages yet';
+  };
+
   return (
-    <div className="min-h-screen bg-[#DFEEE2] relative">
+    <div className="min-h-screen bg-gradient-to-b from-[#98cf9a] to-white">
       <Navigation />
       <div className="max-w-6xl mx-auto p-4">
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="grid grid-cols-3 h-[calc(100vh-160px)]">
-            {/* Left sidebar - Chat list (Independent scroll) */}
-            <div className="col-span-1 border-r border-[#D1E7D2] max-h-full overflow-hidden flex flex-col">
-              <div className="p-4 border-b border-[#D1E7D2] bg-white">
-                <h2 className="text-xl font-semibold text-[#3B4540]">Messages</h2>
-              </div>
-              <div className="overflow-y-auto flex-1">
-                {loading ? (
-                  <div className="p-4 text-center text-gray-500">Loading...</div>
-                ) : chats.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">No messages yet</div>
-                ) : (
-                  chats.map((chat) => {
-                    const otherParty = chat.customerId._id === user._id ? chat.sellerId : chat.customerId;
-                    
-                    // Get appropriate message preview text
-                    const getMessagePreview = (msg) => {
-                      if (!msg) return 'No messages yet';
-                      if (msg.message) return msg.message;
-                      if (msg.file) {
-                        if (msg.file.match(/\.(jpg|jpeg|png|gif)$/i)) return '🖼️ Image';
-                        if (msg.file.match(/\.(mp4|webm)$/i)) return '🎥 Video';
-                        return '📎 File';
-                      }
-                      return 'No messages yet';
-                    };
-
-                    return (
-                      <div
+        {loading ? (
+          <div className="flex justify-center items-center h-[80vh]">
+            <LoadingSpinner />
+          </div>
+        ) : (
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-[0_20px_50px_rgba(8,_112,_84,_0.7)] hover:shadow-[0_20px_60px_rgba(8,_112,_84,_0.8)] transition-all duration-300"
+          >
+            <div className="grid grid-cols-3 h-[calc(100vh-160px)]">
+              {/* Left sidebar - Chat list */}
+              <div className="col-span-1 border-r border-[#D1E7D2]/50 max-h-full overflow-hidden flex flex-col bg-white/50 rounded-l-2xl">
+                <div className="p-4 border-b border-[#D1E7D2] bg-white/80 backdrop-blur-sm">
+                  <h2 className="text-xl font-semibold text-[#3B4540]">Messages</h2>
+                </div>
+                <div className="overflow-y-auto flex-1 custom-scrollbar">
+                  {chats.length === 0 ? (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="p-4 text-center text-gray-500"
+                    >
+                      No messages yet
+                    </motion.div>
+                  ) : (
+                    chats.map((chat) => (
+                      <motion.div
                         key={chat._id}
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
                         onClick={() => setSelectedChat(chat)}
-                        className={`p-4 cursor-pointer hover:bg-[#DFEEE2] flex items-center gap-3 ${
-                          selectedChat?._id === chat._id ? 'bg-[#DFEEE2]' : ''
+                        className={`p-4 cursor-pointer hover:bg-[#DFEEE2]/70 transition-all duration-300 flex items-center gap-3 ${
+                          selectedChat?._id === chat._id ? 'bg-[#DFEEE2]/80' : ''
                         }`}
                       >
                         <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
                           <img
-                            src={getProfileImageUrl(otherParty)}
-                            alt={`${otherParty?.name}'s profile`}
+                            src={getProfileImageUrl(getOtherParty(chat))}
+                            alt={`${getOtherParty(chat)?.name}'s profile`}
                             className="w-full h-full object-cover"
                             loading="lazy"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-[#3B4540]">{otherParty?.name}</h3>
+                          <h3 className="font-medium text-[#3B4540]">{getOtherParty(chat)?.name}</h3>
                           <p className="text-sm text-gray-500 truncate">
                             {getMessagePreview(chat.messages[chat.messages.length - 1])}
                           </p>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
+                      </motion.div>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Right side - Chat messages (Independent scroll) */}
-            <div className="col-span-2 flex flex-col max-h-full overflow-hidden">
-              {selectedChat ? (
-                <>
-                  {/* Fixed header */}
-                  <div className="p-4 border-b border-[#D1E7D2] bg-white">
-                    <div className="flex items-center gap-3">
-                      {(() => {
-                        const otherParty = selectedChat.customerId._id === user._id 
-                          ? selectedChat.sellerId 
-                          : selectedChat.customerId;
-                        
-                        return (
-                          <>
-                            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+              {/* Right side - Chat messages */}
+              <div className="col-span-2 flex flex-col max-h-full overflow-hidden bg-white/80 rounded-r-2xl">
+                {selectedChat ? (
+                  <>
+                    {/* Chat header */}
+                    <div className="p-4 border-b border-[#D1E7D2] bg-white/90 backdrop-blur-sm">
+                      <div className="flex items-center gap-3">
+                        {(() => {
+                          const otherParty = selectedChat.customerId._id === user._id 
+                            ? selectedChat.sellerId 
+                            : selectedChat.customerId;
+                          
+                          return (
+                            <>
+                              <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                                <img
+                                  src={getProfileImageUrl(otherParty)}
+                                  alt="Profile"
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                              </div>
+                              <h3 
+                                className="text-lg font-semibold text-[#3B4540] hover:text-[#438951] cursor-pointer"
+                                onClick={() => handleProfileClick(otherParty)}
+                              >
+                                {otherParty?.name}
+                              </h3>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Messages area */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                      {selectedChat.messages.map((msg, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className={`flex items-start gap-2 ${
+                            msg.senderId === user._id ? 'justify-end' : 'justify-start'
+                          }`}
+                        >
+                          {msg.senderId !== user._id && (
+                            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                               <img
-                                src={getProfileImageUrl(otherParty)}
+                                src={getProfileImageUrl(getOtherParty(selectedChat))}
                                 alt="Profile"
                                 className="w-full h-full object-cover"
                                 loading="lazy"
                               />
                             </div>
-                            <h3 
-                              className="text-lg font-semibold text-[#3B4540] hover:text-[#438951] cursor-pointer"
-                              onClick={() => handleProfileClick(otherParty)}
-                            >
-                              {otherParty?.name}
-                            </h3>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Scrollable messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {selectedChat.messages.map((msg, index) => (
-                      <div
-                        key={index}
-                        className={`flex items-start gap-2 ${
-                          msg.senderId === user._id ? 'justify-end' : 'justify-start'
-                        }`}
-                      >
-                        {msg.senderId !== user._id && (
-                          <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-                            <img
-                              src={getProfileImageUrl(getOtherParty(selectedChat))}
-                              alt="Profile"
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          </div>
-                        )}
-                        <div
-                          className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                            msg.senderId === user._id
-                              ? 'bg-[#438951] text-white'
-                              : 'bg-gray-100'
-                          }`}
-                        >
-                          {msg.message && (
-                            <p className="whitespace-pre-wrap mb-2">{msg.message}</p>
                           )}
-                          
-                          {msg.file && (
-                            <div className="mt-2">
-                              {msg.file.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                                <div 
-                                  className="relative group cursor-pointer"
-                                  onClick={() => {
-                                    console.log('Clicking image...');
-                                    handleImageClick(`http://localhost:5000${msg.file}`);
-                                  }}
-                                >
-                                  <img
-                                    src={`http://localhost:5000${msg.file}`}
-                                    alt="Attachment"
-                                    className="max-w-full rounded-lg hover:opacity-95 transition-opacity"
-                                  />
-                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <div className="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full">
-                                      Click to view
+                          <div
+                            className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                              msg.senderId === user._id
+                                ? 'bg-[#438951] text-white'
+                                : 'bg-gray-100'
+                            }`}
+                          >
+                            {msg.message && (
+                              <p className="whitespace-pre-wrap mb-2">{msg.message}</p>
+                            )}
+                            
+                            {msg.file && (
+                              <div className="mt-2">
+                                {msg.file.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                                  <div 
+                                    className="relative group cursor-pointer"
+                                    onClick={() => {
+                                      console.log('Clicking image...');
+                                      handleImageClick(`http://localhost:5000${msg.file}`);
+                                    }}
+                                  >
+                                    <img
+                                      src={`http://localhost:5000${msg.file}`}
+                                      alt="Attachment"
+                                      className="max-w-full rounded-lg hover:opacity-95 transition-opacity"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <div className="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full">
+                                        Click to view
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              ) : msg.file.match(/\.(mp4|webm)$/i) ? (
-                                <div className="rounded-lg overflow-hidden bg-black">
-                                  <video
-                                    controls
-                                    className="max-w-full"
-                                  >
-                                    <source src={`http://localhost:5000${msg.file}`} type="video/mp4" />
-                                    Your browser does not support the video tag.
-                                  </video>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2 bg-white bg-opacity-10 rounded-lg p-2 hover:bg-opacity-20 transition-colors">
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                                  </svg>
-                                  <a
-                                    href={`http://localhost:5000${msg.file}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hover:underline flex-1"
-                                  >
-                                    {msg.file.split('/').pop()} {/* Show filename */}
-                                    <span className="text-xs opacity-75 ml-1">
-                                      Click to download
-                                    </span>
-                                  </a>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          <span className="text-xs opacity-75 mt-1 block">
-                            {new Date(msg.timestamp).toLocaleTimeString()}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
+                                ) : msg.file.match(/\.(mp4|webm)$/i) ? (
+                                  <div className="rounded-lg overflow-hidden bg-black">
+                                    <video
+                                      controls
+                                      className="max-w-full"
+                                    >
+                                      <source src={`http://localhost:5000${msg.file}`} type="video/mp4" />
+                                      Your browser does not support the video tag.
+                                    </video>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 bg-white bg-opacity-10 rounded-lg p-2 hover:bg-opacity-20 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                                    </svg>
+                                    <a
+                                      href={`http://localhost:5000${msg.file}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="hover:underline flex-1"
+                                    >
+                                      {msg.file.split('/').pop()} {/* Show filename */}
+                                      <span className="text-xs opacity-75 ml-1">
+                                        Click to download
+                                      </span>
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            
+                            <span className="text-xs opacity-75 mt-1 block">
+                              {new Date(msg.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
+                      <div ref={messagesEndRef} />
+                    </div>
 
-                  {/* Fixed input area */}
-                  <div className="border-t border-[#D1E7D2] bg-white p-4">
-                    <form onSubmit={sendMessage} className="space-y-2">
-                      {/* File Preview Section */}
-                      {file && (
-                        <div className="mb-2 relative inline-block">
-                          {filePreview && filePreview !== 'document' ? (
-                            file.type.startsWith('image/') ? (
-                              <img
-                                src={filePreview}
-                                alt="Preview"
-                                className="max-h-32 rounded-lg"
-                              />
-                            ) : file.type.startsWith('video/') ? (
-                              <video
-                                src={filePreview}
-                                className="max-h-32 rounded-lg"
-                                controls
-                              />
-                            ) : null
-                          ) : (
-                            <div className="p-2 bg-gray-100 rounded-lg inline-flex items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M4 3a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                              </svg>
-                              {file.name}
-                            </div>
-                          )}
-                          {/* Remove file button */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFile(null);
-                              setFilePreview(null);
-                            }}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        <textarea
-                          value={message}
-                          onChange={(e) => setMessage(e.target.value)}
-                          onKeyPress={handleKeyPress}
-                          ref={messageInputRef}
-                          placeholder="Type a message..."
-                          rows="1"
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#438951] resize-none"
-                          style={{ minHeight: '42px', maxHeight: '120px' }}
-                        />
-                        
-                        {/* Attach button and menu */}
-                        <div className="relative" ref={attachMenuRef}>
-                          <button
-                            type="button"
-                            onClick={() => setShowAttachMenu(!showAttachMenu)}
-                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
-                            </svg>
-                            Attach
-                          </button>
-
-                          {showAttachMenu && (
-                            <div className="absolute bottom-full right-0 mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
-                              <label
-                                htmlFor="file-upload"
-                                className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-[#DFEEE2] transition-colors cursor-pointer"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                    {/* Input area */}
+                    <div className="border-t border-[#D1E7D2] bg-white/90 backdrop-blur-sm p-4 rounded-br-2xl">
+                      <form onSubmit={sendMessage} className="space-y-2">
+                        {/* File Preview Section */}
+                        {file && (
+                          <div className="mb-2 relative inline-block">
+                            {filePreview && filePreview !== 'document' ? (
+                              file.type.startsWith('image/') ? (
+                                <img
+                                  src={filePreview}
+                                  alt="Preview"
+                                  className="max-h-32 rounded-lg"
+                                />
+                              ) : file.type.startsWith('video/') ? (
+                                <video
+                                  src={filePreview}
+                                  className="max-h-32 rounded-lg"
+                                  controls
+                                />
+                              ) : null
+                            ) : (
+                              <div className="p-2 bg-gray-100 rounded-lg inline-flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                   <path fillRule="evenodd" d="M4 3a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
                                 </svg>
-                                Upload File
-                              </label>
-                            </div>
-                          )}
+                                {file.name}
+                              </div>
+                            )}
+                            {/* Remove file button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFile(null);
+                                setFilePreview(null);
+                              }}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          <textarea
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            ref={messageInputRef}
+                            placeholder="Type a message..."
+                            rows="1"
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#438951] resize-none"
+                            style={{ minHeight: '42px', maxHeight: '120px' }}
+                          />
+                          
+                          {/* Attach button and menu */}
+                          <div className="relative" ref={attachMenuRef}>
+                            <button
+                              type="button"
+                              onClick={() => setShowAttachMenu(!showAttachMenu)}
+                              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
+                              </svg>
+                              Attach
+                            </button>
+
+                            {showAttachMenu && (
+                              <div className="absolute bottom-full right-0 mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
+                                <label
+                                  htmlFor="file-upload"
+                                  className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-[#DFEEE2] transition-colors cursor-pointer"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M4 3a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                                  </svg>
+                                  Upload File
+                                </label>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Hidden file input */}
+                          <input
+                            type="file"
+                            id="file-upload"
+                            onChange={handleFileChange}
+                            className="hidden"
+                            accept="image/*,video/*,.pdf,.doc,.docx"
+                          />
+
+                          {/* Send button */}
+                          <button
+                            type="submit"
+                            className="px-4 py-2 bg-[#438951] text-white rounded-lg hover:bg-[#357241] transition-colors flex items-center gap-2"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                            </svg>
+                            Send
+                          </button>
                         </div>
-
-                        {/* Hidden file input */}
-                        <input
-                          type="file"
-                          id="file-upload"
-                          onChange={handleFileChange}
-                          className="hidden"
-                          accept="image/*,video/*,.pdf,.doc,.docx"
-                        />
-
-                        {/* Send button */}
-                        <button
-                          type="submit"
-                          className="px-4 py-2 bg-[#438951] text-white rounded-lg hover:bg-[#357241] transition-colors flex items-center gap-2"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                          </svg>
-                          Send
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-gray-500">
-                  Select a chat to start messaging
-                </div>
-              )}
+                      </form>
+                    </div>
+                  </>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex-1 flex items-center justify-center text-gray-500"
+                  >
+                    <div className="text-center">
+                      <svg className="w-16 h-16 mx-auto text-[#98cf9a] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <p className="text-lg">Select a chat to start messaging</p>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        )}
       </div>
       {viewerImage && (
         <ImageViewerModal 
           src={viewerImage} 
-          onClose={() => {
-            console.log('Closing viewer...');
-            setViewerImage(null);
-          }} 
+          onClose={() => setViewerImage(null)} 
         />
       )}
     </div>
   );
 };
+
+// Add this CSS to your global styles
+const styles = `
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #98cf9a;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #7ab17c;
+}
+`;
 
 export default ChatPage; 

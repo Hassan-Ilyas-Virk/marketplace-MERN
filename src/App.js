@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import Login from './Pages/Login.js';
 import Register from './Pages/Register.js';
 import ProtectedRoute from './routes/ProtectedRoute.js';
@@ -12,11 +13,16 @@ import SellerProfile from './Pages/SellerProfile.js';
 import UserProfile from './Pages/UserProfile.js';
 import ChatPage from './Components/ChatPage.js';
 import CustomerProfile from './Pages/CustomerProfile.js';
+import AboutUs from './Pages/AboutUs.js';
+import ContactUs from './Pages/ContactUs.js';
 
-function App() {
+// Create a wrapper component for AnimatePresence
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  
   return (
-    <Router>
-      <Routes>
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route 
@@ -76,7 +82,17 @@ function App() {
           } 
         />
         <Route path="/customer/:customerId" element={<CustomerProfile />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/contact" element={<ContactUs />} />
       </Routes>
+    </AnimatePresence>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AnimatedRoutes />
     </Router>
   );
 }

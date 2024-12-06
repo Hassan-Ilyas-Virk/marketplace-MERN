@@ -21,7 +21,8 @@ const app = express();
 app.use(express.json());
 app.use(cors({
     origin: 'http://localhost:3000',
-    credentials: true
+    credentials: true,
+    exposedHeaders: ['Cross-Origin-Resource-Policy']
 }));
 app.use(morgan('dev'));
 
@@ -44,7 +45,11 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Serve static files from uploads directory
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+}, express.static(uploadsDir));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)

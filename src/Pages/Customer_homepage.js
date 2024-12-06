@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import Navigation from '../Components/Navigation.js';
+import HomeSlideshow from '../Components/HomeSlideshow.js';
 import ListingItem from '../Components/listingItem.js';
 import Location from '../Components/location.js';
 import ListingDetailModal from '../Components/ListingDetailModal.js';
 import AIChatbot from '../Components/AIchatbot.js';
+import FilterBox from '../Components/FilterBox.js';
+import LoadingSpinner from '../Components/LoadingSpinner.js';
+import { motion } from 'framer-motion';
+import SearchBar from '../Components/SearchBar.js';
 
 const categories = [
   { id: 'favorites', name: 'Favorites', icon: '💝' },
@@ -20,7 +25,6 @@ const categories = [
 const Homepage = () => {
   const user = JSON.parse(localStorage.getItem('user'));
 
-  // Redirect if not logged in
   if (!user) {
     return <Navigate to="/login" />;
   }
@@ -36,50 +40,73 @@ const Homepage = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [locationData, setLocationData] = useState(null);
   const [error, setError] = useState(null);
+  const [sortBy, setSortBy] = useState('default');
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchListings = async () => {
-      setLoading(true);
+    const initializePage = async () => {
+      setIsLoading(true);
       try {
-        const response = await fetch('http://localhost:5000/api/listings');
-        const data = await response.json();
-        setListings(data);
-      } catch (error) {
-        console.error('Error fetching listings:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchFavorites = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/favorites', {
-          headers: {
-            Authorization: `Bearer ${user.token}`
+        const fetchListings = async () => {
+          setLoading(true);
+          try {
+            const response = await fetch('http://localhost:5000/api/listings');
+            const data = await response.json();
+            setListings(data);
+          } catch (error) {
+            console.error('Error fetching listings:', error);
+          } finally {
+            setLoading(false);
           }
-        });
-        const data = await response.json();
-        setFavorites(data);
+        };
+
+        const fetchFavorites = async () => {
+          try {
+            const response = await fetch('http://localhost:5000/api/favorites', {
+              headers: {
+                Authorization: `Bearer ${user.token}`
+              }
+            });
+            const data = await response.json();
+            setFavorites(Array.isArray(data) ? data : []);
+          } catch (error) {
+            console.error('Error fetching favorites:', error);
+            setFavorites([]);
+          }
+        };
+
+        await fetchListings();
+        await fetchFavorites();
+        
+        // Simulate loading for demo
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 1500);
       } catch (error) {
-        console.error('Error fetching favorites:', error);
+        console.error('Error:', error);
       }
     };
 
-    fetchListings();
-    fetchFavorites();
+    initializePage();
   }, [user.token]);
 
+  if (isLoading) {
+    return <LoadingSpinner fullScreen={true} />;
+  }
+
   const handleSearch = (e) => {
-    e.preventDefault();
-    console.log('Searching for:', searchQuery);
+    setSearchQuery(e.target.value);
   };
 
   const filteredListings = listings.filter((listing) => {
+    if (selectedCategory === 'favorites') {
+      return favorites.includes(listing._id) && listing.status === 'Active';
+    }
+
     const categoryMatch =
       selectedCategory === 'all' ||
-      (selectedCategory === 'favorites'
-        ? favorites.some((fav) => fav._id === listing._id)
-        : listing.category === selectedCategory);
+      listing.category === selectedCategory;
     const regionMatch = !selectedRegion || listing.location.toLowerCase().includes(selectedRegion.toLowerCase());
     const searchMatch =
       !searchQuery ||
@@ -123,12 +150,10 @@ const Homepage = () => {
             setError(null);
           } catch (error) {
             console.error('Error getting location details:', error);
-    
           }
         },
         (error) => {
           console.error('Error getting location:', error);
-      
         }
       );
     } else {
@@ -144,110 +169,136 @@ const Homepage = () => {
 
       setFavorites(updatedFavorites);
 
-      await fetch(`http://localhost:5000/api/favorites/${listingId}`, {
+      await fetch('http://localhost:5000/api/favorites', {
         method: favorites.includes(listingId) ? 'DELETE' : 'POST',
         headers: {
           Authorization: `Bearer ${user.token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ listingId })
       });
     } catch (error) {
       console.error('Error updating favorite:', error);
     }
   };
 
+  const sortListings = (listings) => {
+    switch (sortBy) {
+      case 'price-asc':
+        return [...listings].sort((a, b) => a.price - b.price);
+      case 'price-desc':
+        return [...listings].sort((a, b) => b.price - a.price);
+      case 'name-asc':
+        return [...listings].sort((a, b) => a.title.localeCompare(b.title));
+      case 'name-desc':
+        return [...listings].sort((a, b) => b.title.localeCompare(a.title));
+      default:
+        return listings;
+    }
+  };
+
+  const applyPriceFilter = (listings) => {
+    return listings.filter(listing => {
+      if (priceRange.min && priceRange.max) {
+        return listing.price >= Number(priceRange.min) && listing.price <= Number(priceRange.max);
+      }
+      return true;
+    });
+  };
+
+  const finalListings = sortListings(applyPriceFilter(filteredListings));
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="min-h-screen bg-gradient-to-b from-[#98cf9a] to-white"
+    >
       <Navigation />
       
-      {/* Top Search Bar */}
-      <div className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search items..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      {/* Animated container for slideshow and search */}
+      <div className="animate-slideDown">
+        <HomeSlideshow />
+        
+        {/* Enhanced Search Section */}
+        <SearchBar 
+          searchQuery={searchQuery}
+          handleSearch={handleSearch}
+        />
+      </div>
+
+      {/* Rest of your content */}
+      <div className="animate-fadeIn">
+        <div className="max-w-full mx-auto px-8 py-8">
+          <div className="flex flex-col md:flex-row gap-6 mb-8">
+            <FilterBox 
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
+              listings={listings}
+              selectedRegion={selectedRegion}
+              locationData={locationData}
+              handleRegionSelect={handleRegionSelect}
+              getCurrentLocation={getCurrentLocation}
             />
-       
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              Search
-            </button>
-          </form>
-        </div>
-      </div>
 
-      {/* Location Filter */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex gap-4 items-center">
-          <Location 
-            listings={listings} 
-            onLocationFilter={handleRegionSelect}
-            selectedLocation={selectedRegion}
-            locationData={locationData}
-          />
-          <button
-            onClick={getCurrentLocation}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-          >
-            📍
-          </button>
-        </div>
-        {error && <p className="text-red-500 mt-2">{error}</p>}
-      </div>
-
-      {/* Categories Section */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">All categories</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
-              className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div className="w-12 h-12 flex items-center justify-center text-2xl mb-2">{category.icon}</div>
-              <span className="text-sm text-center text-gray-700">{category.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          {selectedRegion ? `Listings in ${selectedRegion}` : 'Featured Items'}
-        </h1>
-        {loading ? (
-          <div className="text-center">Loading...</div>
-        ) : listings && listings.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredListings.map((listing, index) => (
-              <div key={listing.id || index} onClick={() => handleListingClick(listing)}>
-                <ListingItem
-                  listing={listing}
-                  isFavorite={favorites.includes(listing._id)}
-                  onToggleFavorite={() => toggleFavorite(listing._id)}
-                />
+            <div className="w-full md:w-3/4">
+              {/* Categories Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-8">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`flex flex-col items-center p-4 rounded-lg transition-all transform hover:scale-105
+                      ${selectedCategory === category.id 
+                        ? 'bg-[#1DB954] text-white shadow-md' 
+                        : 'bg-white hover:bg-[#A6CF98] hover:bg-opacity-20 border border-[#A6CF98]'
+                      }`}
+                  >
+                    <div className="w-12 h-12 flex items-center justify-center text-2xl mb-2">
+                      {category.icon}
+                    </div>
+                    <span className="text-sm text-center">{category.name}</span>
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center">No listings found</div>
-        )}
-      </div>
 
-      {/* Listing Detail Modal */}
-      {isModalOpen && <ListingDetailModal listing={selectedListing} onClose={closeModal} />}
-      
-      {/* Add the chatbot component at the end */}
-      <AIChatbot />
-    </div>
+              {/* Listings Grid */}
+              {loading ? (
+                <div className="text-center py-8 text-[#557C55]">Loading...</div>
+              ) : finalListings.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {finalListings.map((listing, index) => (
+                    <div 
+                      key={listing.id || index} 
+                      onClick={() => handleListingClick(listing)}
+                      className="transform transition-all duration-300 hover:-translate-y-1"
+                    >
+                      <ListingItem
+                        listing={listing}
+                        isFavorite={Array.isArray(favorites) && favorites.includes(listing._id)}
+                        onToggleFavorite={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(listing._id);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-[#557C55]">No listings found</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {isModalOpen && <ListingDetailModal listing={selectedListing} onClose={closeModal} />}
+        <AIChatbot />
+      </div>
+    </motion.div>
   );
 };
 
