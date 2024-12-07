@@ -8,7 +8,16 @@ const messageSchema = new mongoose.Schema({
   },
   message: {
     type: String,
-    required: true
+    default: ''
+  },
+  file: {
+    type: String,
+    default: null
+  },
+  fileType: {
+    type: String,
+    enum: ['image', 'video', 'document', null],
+    default: null
   },
   timestamp: {
     type: Date,
@@ -31,5 +40,7 @@ const chatSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+chatSchema.index({ customerId: 1, sellerId: 1 });
 
 export default mongoose.model('Chat', chatSchema);

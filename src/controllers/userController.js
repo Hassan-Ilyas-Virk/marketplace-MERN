@@ -1,49 +1,136 @@
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+import User from '../models/User.js';
+import bcrypt from 'bcryptjs';
+import Listing from '../models/Listing.js';
 
-// Register user
-const registerUser = async (req, res) => {
+export const updateProfile = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { email, currentPassword, newPassword, name } = req.body;
+        const user = await User.findById(req.user._id);
 
-        // Check if user exists
-        const userExists = await User.findOne({ email });
-        if (userExists) {
-            return res.status(400).json({ message: 'User already exists' });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+        // Email update validation
+        if (email) {
+            // Check if new email is same as current
+            if (email === user.email) {
+                return res.status(400).json({ message: 'New email must be different from current email' });
+            }
 
-        // Create user
-        const user = await User.create({
-            name,
-            email,
-            password: hashedPassword
+            // Check if email is already in use
+            const emailExists = await User.findOne({ email });
+            if (emailExists) {
+                return res.status(400).json({ message: 'Email already in use' });
+            }
+
+            user.email = email;
+        }
+
+        // Password update validation
+        if (currentPassword && newPassword) {
+            // Check if current password is correct
+            const isMatch = await user.comparePassword(currentPassword);
+            if (!isMatch) {
+                return res.status(400).json({ message: 'Current password is incorrect' });
+            }
+
+            // Check if new password meets minimum length
+            if (newPassword.length < 6) {
+                return res.status(400).json({ message: 'New password must be at least 6 characters long' });
+            }
+
+            // Check if new password is same as current
+            const isSamePassword = await bcrypt.compare(newPassword, user.password);
+            if (isSamePassword) {
+                return res.status(400).json({ message: 'New password must be different from current password' });
+            }
+
+            user.password = newPassword; // Will be hashed by pre-save middleware
+        }
+
+        // Update name if provided
+        if (name) {
+            user.name = name;
+        }
+
+        await user.save();
+
+        // Send response without password
+        const userResponse = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            profileImage: user.profileImage
+        };
+
+        res.json({
+            message: 'Profile updated successfully',
+            user: userResponse
         });
-
-        if (user) {
-            res.status(201).json({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                token: generateToken(user._id)
-            });
-        }
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Profile update error:', error);
+        res.status(500).json({ message: 'Error updating profile' });
     }
 };
 
-// Generate JWT
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: '30d'
-    });
+export const uploadProfilePic = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No image file provided' });
+        }
+
+        const imageUrl = `/uploads/${req.file.filename}`;
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Update user's profileImage in DB
+        user.profileImage = imageUrl;
+        await user.save();
+
+        // Get the updated user data
+        const updatedUser = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            profileImage: user.profileImage
+        };
+
+        // Send back the full user object so frontend can update localStorage
+        res.json({
+            message: 'Profile image updated successfully',
+            imageUrl: imageUrl,
+            user: updatedUser
+        });
+    } catch (error) {
+        console.error('Profile image upload error:', error);
+        res.status(500).json({ message: 'Error uploading profile image' });
+    }
 };
 
-module.exports = {
-    registerUser
-}; 
+export const getUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getSellerListings = async (req, res) => {
+  try {
+    const listings = await Listing.find({ sellerId: req.params.id })
+      .sort({ createdAt: -1 });
+    res.json(listings);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
