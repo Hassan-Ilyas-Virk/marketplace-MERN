@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaBars, FaTimes, FaFlag, FaChartBar } from "react-icons/fa";
 import LoadingSpinner from "../Components/LoadingSpinner.js";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Bar } from "react-chartjs-2";
 import {
   Chart,
@@ -13,6 +13,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import geminiLogo from '../assets/gemini.png';
 
 // Register the necessary components
 Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -30,6 +31,359 @@ const AnalyticsChart = ({ analytics }) => {
   };
 
   return <Bar data={data} />;
+};
+
+const UserStatisticsChart = ({ userStats }) => {
+  const chartData = {
+    labels: ['Customers', 'Sellers', 'Total Users'],
+    datasets: [{
+      label: 'User Statistics',
+      data: [
+        userStats.customerCount || 0,
+        userStats.sellerCount || 0,
+        userStats.totalUsers || 0
+      ],
+      backgroundColor: [
+        'rgba(29, 185, 84, 0.6)',  // Green for Customers
+        'rgba(85, 124, 85, 0.6)',  // Dark green for Sellers
+        'rgba(166, 207, 152, 0.6)' // Light green for Total
+      ],
+      borderColor: [
+        'rgb(29, 185, 84)',
+        'rgb(85, 124, 85)',
+        'rgb(166, 207, 152)'
+      ],
+      borderWidth: 1
+    }]
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'User Statistics Overview',
+        font: {
+          size: 16
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        }
+      }
+    }
+  };
+
+  return <Bar data={chartData} options={options} />;
+};
+
+const ListingViewsChart = ({ listings }) => {
+  // Sort listings by views and get top 5
+  const topListings = [...listings]
+    .filter(listing => listing.views > 0)
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 5);
+
+  const chartData = {
+    labels: topListings.map(listing => listing.title.substring(0, 15) + '...'),
+    datasets: [{
+      label: 'Views',
+      data: topListings.map(listing => listing.views),
+      backgroundColor: 'rgba(29, 185, 84, 0.6)',
+      borderColor: 'rgb(29, 185, 84)',
+      borderWidth: 1
+    }]
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'Most Viewed Listings',
+        font: {
+          size: 16
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
+        }
+      }
+    }
+  };
+
+  return <Bar data={chartData} options={options} />;
+};
+
+const ReportsChatbot = ({ listings }) => {
+  const [messages, setMessages] = useState([]);
+  const [userInput, setUserInput] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const chatContainerRef = useRef(null);
+  const [typingInterval, setTypingInterval] = useState(null);
+
+  const API_KEY = "AIzaSyD8LyEhycHovd5oSkGyyVAaKeUyhknFlaQ";
+  const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`;
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const showTypingEffect = (text, callback) => {
+    const words = text.split(" ");
+    let currentText = "";
+    let currentWordIndex = 0;
+
+    const interval = setInterval(() => {
+      currentText += (currentWordIndex === 0 ? "" : " ") + words[currentWordIndex++];
+      callback(currentText);
+
+      if (currentWordIndex === words.length) {
+        clearInterval(interval);
+        setTypingInterval(null);
+        setIsGenerating(false);
+      }
+    }, 75);
+
+    setTypingInterval(interval);
+  };
+
+  const handleStopResponse = () => {
+    if (typingInterval) {
+      clearInterval(typingInterval);
+      setTypingInterval(null);
+      setIsGenerating(false);
+    }
+  };
+
+  const generateReportSummary = () => {
+    // Sort listings by views and get top 5
+    const topListings = [...listings]
+      .filter(listing => listing.views > 0)
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 5);
+
+    return `Here's a summary of the most viewed listings:
+${topListings.map((listing, index) => `${index + 1}. "${listing.title}" with ${listing.views} views`).join('\n')}
+
+Total number of listings with views: ${listings.filter(l => l.views > 0).length}
+Average views per listing: ${(listings.reduce((acc, curr) => acc + (curr.views || 0), 0) / listings.length).toFixed(2)}`;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!userInput.trim() || isGenerating) return;
+
+    setIsGenerating(true);
+    
+    const newUserMessage = {
+      type: 'outgoing',
+      content: userInput,
+      avatar: 'user_profile_picture.jpg'
+    };
+    
+    setMessages(prev => [...prev, newUserMessage]);
+    setUserInput('');
+
+    try {
+      let response;
+      
+      if (userInput.toLowerCase().includes('give report')) {
+        // Generate local report summary
+        const reportSummary = generateReportSummary();
+        response = {
+          ok: true,
+          json: () => Promise.resolve({
+            candidates: [{
+              content: {
+                parts: [{ text: reportSummary }]
+              }
+            }]
+          })
+        };
+      } else {
+        // Use Gemini API for other queries
+        response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ 
+              role: "user", 
+              parts: [{ text: userInput + "\n\nPlease keep your response within 5 lines." }] 
+            }],
+          }),
+        });
+      }
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error.message);
+
+      const apiResponse = data?.candidates[0].content.parts[0].text.replace(
+        /\*\*(.*?)\*\*/g,
+        "$1"
+      );
+
+      const botMessage = {
+        type: 'incoming',
+        content: '',
+        avatar: geminiLogo
+      };
+      
+      setMessages(prev => [...prev, botMessage]);
+      
+      showTypingEffect(apiResponse, (text) => {
+        setMessages(prev => [
+          ...prev.slice(0, -1),
+          { ...botMessage, content: text }
+        ]);
+      });
+
+    } catch (error) {
+      setMessages(prev => [...prev, {
+        type: 'incoming',
+        content: `Error: ${error.message}`,
+        avatar: geminiLogo,
+        error: true
+      }]);
+      setIsGenerating(false);
+    }
+  };
+
+  const chatVariants = {
+    hidden: { opacity: 0, scale: 0.8, y: 20 },
+    visible: { 
+      opacity: 1, 
+      scale: 1, 
+      y: 0,
+      transition: { type: "spring", duration: 0.5 }
+    },
+    exit: { 
+      opacity: 0, 
+      scale: 0.8, 
+      y: 20,
+      transition: { duration: 0.3 }
+    }
+  };
+
+  const messageVariants = {
+    hidden: { opacity: 0, x: 20 },
+    visible: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -20 }
+  };
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50">
+      <AnimatePresence mode="wait">
+        {isExpanded ? (
+          <motion.div
+            key="chat"
+            variants={chatVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="w-96 bg-white rounded-lg shadow-lg"
+          >
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <div className="flex items-center">
+                <img src={geminiLogo} alt="Gemini Logo" className="w-8 h-8 mr-2" />
+                <span className="font-semibold">Reports Assistant</span>
+              </div>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="h-96 overflow-y-auto p-4" ref={chatContainerRef}>
+              <AnimatePresence>
+                {messages.map((message, index) => (
+                  <motion.div
+                    key={index}
+                    variants={messageVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className={`flex ${message.type === 'incoming' ? 'justify-start' : 'justify-end'} mb-4`}
+                  >
+                    <div className={`flex items-start max-w-[75%] ${message.error ? 'text-red-500' : ''}`}>
+                      <img 
+                        src={message.avatar} 
+                        alt={`${message.type} avatar`} 
+                        className="w-8 h-8 rounded-full mr-2" 
+                      />
+                      <div className={`p-3 rounded-lg ${
+                        message.type === 'incoming' 
+                          ? 'bg-gray-100' 
+                          : 'bg-green-500 text-white'
+                      }`}>
+                        <p>{message.content}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+            <form onSubmit={handleSubmit} className="border-t border-gray-200 p-4">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  placeholder="Ask about listing views..."
+                  className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  disabled={isGenerating}
+                />
+                {isGenerating ? (
+                  <button
+                    type="button"
+                    onClick={handleStopResponse}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                  >
+                    Stop
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                  >
+                    Send
+                  </button>
+                )}
+              </div>
+            </form>
+          </motion.div>
+        ) : (
+          <motion.button
+            key="button"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsExpanded(true)}
+            className="w-14 h-14 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 flex items-center justify-center"
+          >
+            <FaChartBar className="h-6 w-6" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 };
 
 const ViewReports = () => {
@@ -53,6 +407,43 @@ const ViewReports = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userAnalytics, setUserAnalytics] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+  const [popularListings, setPopularListings] = useState([]);
+  const [error, setError] = useState(null);
+  const [activeChart, setActiveChart] = useState('users');
+  const [listings, setListings] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const token = localStorage.getItem('token');
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        };
+
+        const listingsRes = await fetch('http://localhost:5000/api/listings/popular', { headers });
+
+        if (!listingsRes.ok) {
+          throw new Error('Failed to fetch listings data');
+        }
+
+        const listingsData = await listingsRes.json();
+        console.log('Fetched listings:', listingsData);
+
+        setPopularListings(Array.isArray(listingsData) ? listingsData : []);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -157,6 +548,26 @@ const ViewReports = () => {
     };
 
     fetchAnalytics();
+  }, []);
+
+  // Fetch listings
+  useEffect(() => {
+    const fetchListings = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/listings', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const data = await response.json();
+        console.log('Listings data:', data);
+        setListings(data);
+      } catch (error) {
+        console.error('Error fetching listings:', error);
+      }
+    };
+
+    fetchListings();
   }, []);
 
   const handleLogout = () => {
@@ -281,8 +692,21 @@ const ViewReports = () => {
   );
 
   const renderAnalytics = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {userAnalytics ? (
+    <div className="space-y-6">
+      {renderUsersTable()}
+      
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <PopularListingsChart listings={popularListings} />
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <UserStatisticsChart userStats={userStats} />
+        </div>
+      </div>
+      
+      {/* Existing analytics content */}
+      {userAnalytics && (
         <>
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="font-semibold text-lg mb-4">User Overview</h3>
@@ -324,14 +748,53 @@ const ViewReports = () => {
             </div>
           </div>
         </>
-      ) : (
-        <div className="col-span-3 text-center py-8 text-gray-500">
-          Select a user from the table to view their analytics
-        </div>
       )}
-      <div className="col-span-3">
-        <AnalyticsChart analytics={reports.analytics} />
+    </div>
+  );
+
+  const renderCharts = () => (
+    <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-lg p-6 mb-6">
+      <div className="flex space-x-4 mb-6">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setActiveChart('users')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            activeChart === 'users'
+              ? 'bg-[#1DB954] text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          User Statistics
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setActiveChart('listings')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            activeChart === 'listings'
+              ? 'bg-[#1DB954] text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Listing Views
+        </motion.button>
       </div>
+
+      <motion.div
+        key={activeChart}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.5 }}
+        className="h-[400px] w-full"
+      >
+        {activeChart === 'users' ? (
+          <UserStatisticsChart userStats={userStats} />
+        ) : (
+          <ListingViewsChart listings={listings} />
+        )}
+      </motion.div>
     </div>
   );
 
@@ -465,89 +928,27 @@ const ViewReports = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Header */}
         <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-lg p-6 mb-6">
           <h1 className="text-3xl font-bold text-[#3B4540] mb-4">
-            Platform Reports
+            Listing Views Report
           </h1>
 
-          {/* Tab Navigation */}
-          <div className="flex space-x-4 mb-6">
-            <button
-              onClick={() => setActiveTab("flagged")}
-              className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                activeTab === "flagged"
-                  ? "bg-[#1DB954] text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <FaFlag className="mr-2" />
-              Flagged Items
-            </button>
-            <button
-              onClick={() => setActiveTab("analytics")}
-              className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                activeTab === "analytics"
-                  ? "bg-[#1DB954] text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <FaChartBar className="mr-2" />
-              Analytics
-            </button>
-          </div>
-
-          {/* Content based on active tab */}
-          {activeTab === "flagged" ? (
-            <div className="space-y-4">
-              {reports.flaggedItems.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No flagged items to display
-                </div>
-              ) : (
-                reports.flaggedItems.map((item) => (
-                  <div
-                    key={item._id}
-                    className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg">{item.title}</h3>
-                        <p className="text-gray-600">{item.reason}</p>
-                        <p className="text-sm text-gray-500">
-                          Reported by: {item.reportedBy?.name || "Anonymous"}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Date: {new Date(item.reportedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="space-x-2">
-                        <button
-                          onClick={() => handleRemoveItem(item._id)}
-                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                        >
-                          Remove
-                        </button>
-                        <button
-                          onClick={() => handleDismissFlag(item._id)}
-                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                        >
-                          Dismiss
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
             </div>
+          )}
+
+          {loading ? (
+            <LoadingSpinner />
           ) : (
-            <div className="space-y-6">
-              {renderUsersTable()}
-              {renderAnalytics()}
+            <div className="bg-white rounded-lg shadow p-6">
+              <ListingViewsChart listings={listings} />
             </div>
           )}
         </div>
       </div>
+      <ReportsChatbot listings={listings} />
     </motion.div>
   );
 };

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaBars, FaTimes } from "react-icons/fa";
 import LoadingSpinner from "../Components/LoadingSpinner.js";
 import { motion } from "framer-motion";
+import axios from "axios";
 
 const Admin_Homepage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const Admin_Homepage = () => {
   });
   const [showUserModal, setShowUserModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Redirect if not admin
   useEffect(() => {
@@ -29,53 +31,20 @@ const Admin_Homepage = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        console.log("Fetching stats...");
-        console.log("Token:", localStorage.getItem("token")); // Check if token exists
-
-        const response = await fetch("http://localhost:5000/api/users/stats", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        console.log("Response status:", response.status);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            `HTTP error! status: ${response.status}, message: ${
-              errorData.message || "Unknown error"
-            }`
-          );
-        }
-
-        const statsData = await response.json();
-        console.log("Fetched stats data:", statsData);
-
-        if (!statsData) {
-          throw new Error("No data received from server");
-        }
-
-        setStats({
-          totalUsers: statsData.totalUsers || 0,
-          customerCount: statsData.customerCount || 0,
-          sellerCount: statsData.sellerCount || 0,
-          activeSellers: statsData.activeSellers || 0,
-          totalListings: statsData.totalListings || 0,
-        });
-
-        console.log("Stats set in state:", stats);
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          "http://localhost:5000/api/users/admin/stats",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        console.log("Stats received:", response.data);
+        setStats(response.data);
       } catch (error) {
         console.error("Error fetching stats:", error);
-        // Show error in UI
-        setStats({
-          totalUsers: 0,
-          totalListings: 0,
-          activeSellers: 0,
-          customerCount: 0,
-          sellerCount: 0,
-        });
+        setError(error.message);
       } finally {
         setLoading(false);
       }
@@ -97,6 +66,10 @@ const Admin_Homepage = () => {
 
   if (loading) {
     return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return <div>Error loading statistics: {error}</div>;
   }
 
   return (
@@ -127,12 +100,6 @@ const Admin_Homepage = () => {
                   className="text-gray-700 hover:text-[#1DB954] px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 hover:-translate-y-0.5"
                 >
                   User Management
-                </Link>
-                <Link
-                  to="/admin/listings"
-                  className="text-gray-700 hover:text-[#1DB954] px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 hover:-translate-y-0.5"
-                >
-                  Listing Management
                 </Link>
                 <Link
                   to="/admin/reports"
@@ -180,12 +147,6 @@ const Admin_Homepage = () => {
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[#1DB954] hover:bg-gray-50"
                 >
                   User Management
-                </Link>
-                <Link
-                  to="/admin/listings"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[#1DB954] hover:bg-gray-50"
-                >
-                  Listing Management
                 </Link>
                 <Link
                   to="/admin/reports"
@@ -279,7 +240,7 @@ const Admin_Homepage = () => {
           <h2 className="text-2xl font-bold mb-4 text-[#3B4540]">
             Quick Actions
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <motion.div whileHover={{ scale: 1.02 }}>
               <Link
                 to="/admin/users"
@@ -288,17 +249,6 @@ const Admin_Homepage = () => {
                 <span className="block text-lg mb-1">Manage Users</span>
                 <span className="text-sm opacity-90">
                   View and manage user accounts
-                </span>
-              </Link>
-            </motion.div>
-            <motion.div whileHover={{ scale: 1.02 }}>
-              <Link
-                to="/admin/listings"
-                className="block bg-[#1DB954] text-white p-4 rounded-lg hover:bg-[#3B4540] transition-all duration-300 text-center shadow-md hover:shadow-lg"
-              >
-                <span className="block text-lg mb-1">Manage Listings</span>
-                <span className="text-sm opacity-90">
-                  Monitor marketplace items
                 </span>
               </Link>
             </motion.div>

@@ -213,25 +213,22 @@ export const getUserStats = async (req, res) => {
   try {
     console.log("Fetching user stats...");
 
-    // Get total users count
-    const totalUsers = await User.countDocuments();
-    console.log("Total users:", totalUsers);
+    // Get counts in parallel for better performance
+    const [
+      totalUsers,
+      customerCount,
+      sellerCount,
+      totalListings,
+      distinctSellers
+    ] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ role: "Customer" }),
+      User.countDocuments({ role: "Seller" }),
+      Listing.countDocuments(),
+      Listing.distinct("sellerId")
+    ]);
 
-    // Get count of users by role
-    const customerCount = await User.countDocuments({ role: "Customer" });
-    console.log("Customer count:", customerCount);
-
-    const sellerCount = await User.countDocuments({ role: "Seller" });
-    console.log("Seller count:", sellerCount);
-
-    // Get total listings count
-    const totalListings = await Listing.countDocuments();
-    console.log("Total listings:", totalListings);
-
-    // Get count of active sellers
-    const distinctSellers = await Listing.distinct("sellerId");
     const activeSellers = distinctSellers.length;
-    console.log("Active sellers:", activeSellers);
 
     const stats = {
       totalUsers,
@@ -241,7 +238,7 @@ export const getUserStats = async (req, res) => {
       totalListings,
     };
 
-    console.log("Sending stats:", stats);
+    console.log("Stats calculated:", stats);
     res.json(stats);
   } catch (error) {
     console.error("Error in getUserStats:", error);
@@ -249,5 +246,24 @@ export const getUserStats = async (req, res) => {
       message: "Error fetching user statistics",
       error: error.message,
     });
+  }
+};
+
+export const getUserDistribution = async (req, res) => {
+  try {
+    const [customerCount, sellerCount, adminCount] = await Promise.all([
+      User.countDocuments({ role: "Customer" }),
+      User.countDocuments({ role: "Seller" }),
+      User.countDocuments({ role: "Admin" })
+    ]);
+
+    res.json({
+      customerCount,
+      sellerCount,
+      adminCount
+    });
+  } catch (error) {
+    console.error("Error getting user distribution:", error);
+    res.status(500).json({ message: error.message });
   }
 };

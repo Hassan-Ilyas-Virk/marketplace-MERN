@@ -50,6 +50,29 @@ export const register = async (req, res) => {
   }
 };
 
+// Modify the createAdminIfNotExists function
+const createAdminIfNotExists = async () => {
+  try {
+    // Check if admin exists
+    const adminExists = await User.findOne({ email: process.env.ADMIN_EMAIL });
+    if (!adminExists) {
+      // Create admin user
+      const adminUser = await User.create({
+        name: "Admin",
+        email: process.env.ADMIN_EMAIL,
+        password: process.env.ADMIN_PASSWORD,
+        role: "Admin"
+      });
+      console.log("Admin user created successfully:", adminUser.email);
+      return adminUser;
+    }
+    return adminExists;
+  } catch (error) {
+    console.error("Error creating admin:", error);
+    throw error;
+  }
+};
+
 // Login user
 export const login = async (req, res) => {
   try {
@@ -57,25 +80,25 @@ export const login = async (req, res) => {
     console.log("Login attempt for email:", email);
 
     // Check if it's admin login attempt
-    if (
-      email === process.env.ADMIN_EMAIL &&
-      password === process.env.ADMIN_PASSWORD
-    ) {
-      console.log("Admin login successful");
+    if (email === process.env.ADMIN_EMAIL) {
+      // Ensure admin exists in database
+      const adminUser = await createAdminIfNotExists();
+      
+      // Verify password
+      const isMatch = await adminUser.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Incorrect email or password" });
+      }
 
       // Create admin token
-      const token = jwt.sign(
-        { id: "admin", role: "Admin" },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-      );
+      const token = generateToken(adminUser._id);
 
       // Send admin response
       return res.json({
         token,
-        _id: "admin",
-        name: "Admin",
-        email: process.env.ADMIN_EMAIL,
+        _id: adminUser._id,
+        name: adminUser.name,
+        email: adminUser.email,
         role: "Admin",
       });
     }

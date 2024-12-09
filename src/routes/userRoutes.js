@@ -10,8 +10,10 @@ import {
   deleteUser,
   resetUserPassword,
   getUserStats,
+  getUserDistribution,
 } from "../controllers/userController.js";
 import multer from "multer";
+import User from "../models/User.js";
 
 const router = express.Router();
 
@@ -75,6 +77,25 @@ router.put("/:id", protect, isAdmin, updateUser);
 router.delete("/:id", protect, isAdmin, deleteUser);
 router.post("/:id/reset-password", protect, isAdmin, resetUserPassword);
 
-router.get("/stats", protect, isAdmin, getUserStats);
+router.get("/admin/stats", protect, isAdmin, getUserStats);
+
+router.get("/distribution", protect, isAdmin, async (req, res) => {
+  try {
+    const [customerCount, sellerCount, adminCount] = await Promise.all([
+      User.countDocuments({ role: "Customer" }),
+      User.countDocuments({ role: "Seller" }),
+      User.countDocuments({ role: "Admin" })
+    ]);
+
+    res.json({
+      customerCount,
+      sellerCount,
+      adminCount
+    });
+  } catch (error) {
+    console.error("Error getting user distribution:", error);
+    res.status(500).json({ message: "Error fetching user distribution" });
+  }
+});
 
 export default router;
