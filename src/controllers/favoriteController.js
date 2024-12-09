@@ -85,14 +85,17 @@ export const removeFromFavorites = async (req, res) => {
 export const isFavorite = async (req, res) => {
     try {
         const { listingId } = req.params;
+        const userId = req.user._id;
 
         const favorite = await Favorite.findOne({
-            customerId: req.user._id,
+            customerId: userId,
             listingId: listingId
         });
 
+        // Ensure the response is clear and correct
         res.status(200).json({ isFavorite: !!favorite });
     } catch (error) {
+        console.error('Error checking favorite status:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };

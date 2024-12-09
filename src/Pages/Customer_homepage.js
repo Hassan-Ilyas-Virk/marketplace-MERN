@@ -69,7 +69,7 @@ const Homepage = () => {
               }
             });
             const data = await response.json();
-            setFavorites(Array.isArray(data) ? data : []);
+            setFavorites(data.map(listing => listing._id));
           } catch (error) {
             console.error('Error fetching favorites:', error);
             setFavorites([]);
@@ -169,7 +169,7 @@ const Homepage = () => {
 
       setFavorites(updatedFavorites);
 
-      await fetch('http://localhost:5000/api/favorites', {
+      const response = await fetch('http://localhost:5000/api/favorites', {
         method: favorites.includes(listingId) ? 'DELETE' : 'POST',
         headers: {
           Authorization: `Bearer ${user.token}`,
@@ -177,6 +177,11 @@ const Homepage = () => {
         },
         body: JSON.stringify({ listingId })
       });
+
+      if (!response.ok) {
+        setFavorites(favorites);
+        throw new Error('Failed to update favorites');
+      }
     } catch (error) {
       console.error('Error updating favorite:', error);
     }

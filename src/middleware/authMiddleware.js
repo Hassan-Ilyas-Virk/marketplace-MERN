@@ -4,10 +4,15 @@ import User from '../models/User.js';
 export const protect = async (req, res, next) => {
     try {
         // Get token from header
-        const token = req.headers.authorization?.split(' ')[1];
-        
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            console.log('Authorization header missing');
+            return res.status(401).json({ message: 'Not authorized, no token' });
+        }
+
+        const token = authHeader.split(' ')[1];
         if (!token) {
-            console.log('No token provided');
+            console.log('Token missing from authorization header');
             return res.status(401).json({ message: 'Not authorized, no token' });
         }
 

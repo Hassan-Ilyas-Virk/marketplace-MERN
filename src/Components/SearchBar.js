@@ -5,7 +5,7 @@ const SearchBar = ({ searchQuery, handleSearch }) => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 relative -mt-8">
       <motion.div 
-        className="bg-white rounded-2xl shadow-2xl transform transition-all duration-300 hover:shadow-3xl hover:-translate-y-1"
+        className="bg-white rounded-full shadow-2xl transform transition-all duration-300 hover:shadow-3xl hover:-translate-y-1"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -14,7 +14,7 @@ const SearchBar = ({ searchQuery, handleSearch }) => {
           <input
             type="text"
             placeholder="Search for items..."
-            className="w-full px-8 py-6 text-lg rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1DB954] transition-all duration-300 pl-14"
+            className="w-full px-8 py-6 text-lg rounded-full focus:outline-none focus:ring-2 focus:ring-[#1DB954] transition-all duration-300 pl-14"
             value={searchQuery}
             onChange={handleSearch}
           />

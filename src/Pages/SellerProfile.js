@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navigation from '../Components/Navigation.js';
 import ListingItem from '../Components/listingItem.js';
@@ -7,6 +7,7 @@ import ListingStats from '../Components/ListingStats.js';
 import ListingDetailModal from '../Components/ListingDetailModal.js';
 import FeedbackModal from '../Components/FeedbackModal.js';
 import LoadingSpinner from '../Components/LoadingSpinner.js';
+import AIChatbot from '../Components/AIchatbot.js';
 
 const categories = [
   { id: 'all', name: 'All Listings', icon: '📋' },
@@ -20,6 +21,7 @@ const categories = [
 
 const SellerProfile = () => {
   const { sellerId } = useParams();
+  const navigate = useNavigate();
   const [seller, setSeller] = useState(null);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -256,7 +258,7 @@ const SellerProfile = () => {
             )}
 
             {/* Analytics Section */}
-            {!loading && !error && (
+            {!loading && !error && filteredListings.length > 0 && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -300,33 +302,6 @@ const SellerProfile = () => {
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-[#3B4540]">Feedback</h2>
-                {seller?._id !== localStorage.getItem('userId') && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      setSelectedListingForFeedback(null);
-                      setIsFeedbackModalOpen(true);
-                      scrollToFeedback();
-                    }}
-                    className="px-4 py-2 bg-[#1DB954] text-white rounded-lg hover:bg-[#3B4540] 
-                      transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
-                  >
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      className="h-5 w-5" 
-                      viewBox="0 0 20 20" 
-                      fill="currentColor"
-                    >
-                      <path 
-                        fillRule="evenodd" 
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" 
-                        clipRule="evenodd" 
-                      />
-                    </svg>
-                    Give Feedback
-                  </motion.button>
-                )}
               </div>
 
               {feedbacksLoading ? (
@@ -485,6 +460,8 @@ const SellerProfile = () => {
           </motion.div>
         )}
       </div>
+
+      <AIChatbot />
     </div>
   );
 };

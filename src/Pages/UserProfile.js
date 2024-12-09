@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Navigation from '../Components/Navigation.js';
 import LoadingSpinner from '../Components/LoadingSpinner.js';
+import AIChatbot from '../Components/AIchatbot.js';
 
 const UserProfile = () => {
   const user = JSON.parse(localStorage.getItem('user'));
@@ -268,6 +269,8 @@ const UserProfile = () => {
           </>
         )}
       </div>
+
+      <AIChatbot />
     </motion.div>
   );
 };

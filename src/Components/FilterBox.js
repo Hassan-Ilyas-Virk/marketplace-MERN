@@ -39,16 +39,24 @@ const FilterBox = ({
           <div className="flex gap-3">
             <input
               type="number"
+              min="0"
               placeholder="Min"
               value={priceRange.min}
-              onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
+              onChange={(e) => setPriceRange(prev => ({ 
+                ...prev, 
+                min: e.target.value === '' ? '' : Math.max(0, Number(e.target.value))
+              }))}
               className="w-1/2 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1DB954] bg-white transition-all duration-300 hover:border-[#1DB954]"
             />
             <input
               type="number"
+              min="0"
               placeholder="Max"
               value={priceRange.max}
-              onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
+              onChange={(e) => setPriceRange(prev => ({
+                ...prev,
+                max: e.target.value === '' ? '' : Math.max(0, Number(e.target.value))
+              }))}
               className="w-1/2 p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1DB954] bg-white transition-all duration-300 hover:border-[#1DB954]"
             />
           </div>

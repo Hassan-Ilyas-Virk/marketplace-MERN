@@ -1,7 +1,12 @@
-import { useState, useEffect } from 'react';
-import Select from 'react-select';
+import { useState, useEffect } from "react";
+import Select from "react-select";
 
-const Location = ({ listings, onLocationFilter, locationData }) => {
+const Location = ({
+  listings,
+  onLocationFilter,
+  locationData,
+  selectedLocation,
+}) => {
   const [options, setOptions] = useState([]);
   const [cityData, setCityData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -14,6 +19,17 @@ const Location = ({ listings, onLocationFilter, locationData }) => {
       setCityData(locationData);
     }
   }, [locationData]);
+
+  useEffect(() => {
+    if (selectedLocation) {
+      const locationOption = {
+        value: selectedLocation,
+        label: selectedLocation,
+      };
+      setCityData(locationOption);
+      onLocationFilter(selectedLocation);
+    }
+  }, [selectedLocation, onLocationFilter]);
 
   const handleSearch = async (inputValue) => {
     if (!inputValue) {
@@ -29,13 +45,13 @@ const Location = ({ listings, onLocationFilter, locationData }) => {
         `https://api.api-ninjas.com/v1/city?name=${inputValue}&limit=10`,
         {
           headers: {
-            'X-Api-Key': API_KEY,
+            "X-Api-Key": API_KEY,
           },
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch cities');
+        throw new Error("Failed to fetch cities");
       }
 
       const data = await response.json();
@@ -50,7 +66,7 @@ const Location = ({ listings, onLocationFilter, locationData }) => {
 
       setOptions(cityOptions);
     } catch (err) {
-      setError('Failed to fetch cities');
+      setError("Failed to fetch cities");
       console.error(err);
     } finally {
       setLoading(false);
@@ -82,17 +98,18 @@ const Location = ({ listings, onLocationFilter, locationData }) => {
         styles={{
           control: (base) => ({
             ...base,
-            width: '100%', // Ensures the dropdown adapts to its parent container
+            width: "100%",
           }),
           menu: (base) => ({
             ...base,
-            width: '100%', // Matches the dropdown width to the container
+            width: "100%",
           }),
         }}
         noOptionsMessage={({ inputValue }) =>
-          !inputValue ? 'Type to search...' : 'No cities found'
+          !inputValue ? "Type to search..." : "No cities found"
         }
       />
+      {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
     </div>
   );
 };
