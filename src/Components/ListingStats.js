@@ -1,6 +1,12 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { FaListAlt, FaCheckCircle, FaHandshake, FaClock, FaEye } from 'react-icons/fa';
+import React from "react";
+import { motion } from "framer-motion";
+import {
+  FaListAlt,
+  FaCheckCircle,
+  FaHandshake,
+  FaClock,
+  FaEye,
+} from "react-icons/fa";
 
 const StatCard = ({ title, value, icon: Icon, delay }) => (
   <motion.div
@@ -24,40 +30,43 @@ const StatCard = ({ title, value, icon: Icon, delay }) => (
 
 const ListingStats = ({ listings }) => {
   const totalListings = listings.length;
-  const activeListings = listings.filter(l => l.status === 'active').length;
-  const soldListings = listings.filter(l => l.status === 'sold').length;
-  const pendingListings = listings.filter(l => l.status === 'pending').length;
-  const totalViews = listings.reduce((sum, listing) => sum + (listing.views || 0), 0);
+  const activeListings = listings.filter((l) => l.status === "Active").length;
+  const soldListings = listings.filter((l) => l.status === "Sold").length;
+  const pendingListings = listings.filter((l) => l.status === "Pending").length;
+  const totalViews = listings.reduce(
+    (sum, listing) => sum + (listing.views || 0),
+    0
+  );
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-      <StatCard 
-        title="Total Listings" 
-        value={totalListings} 
+      <StatCard
+        title="Total Listings"
+        value={totalListings}
         icon={FaListAlt}
         delay={0.1}
       />
-      <StatCard 
-        title="Active" 
-        value={activeListings} 
+      <StatCard
+        title="Active"
+        value={activeListings}
         icon={FaCheckCircle}
         delay={0.2}
       />
-      <StatCard 
-        title="Sold" 
-        value={soldListings} 
+      <StatCard
+        title="Sold"
+        value={soldListings}
         icon={FaHandshake}
         delay={0.3}
       />
-      <StatCard 
-        title="Pending" 
-        value={pendingListings} 
+      <StatCard
+        title="Pending"
+        value={pendingListings}
         icon={FaClock}
         delay={0.4}
       />
-      <StatCard 
-        title="Total Views" 
-        value={totalViews} 
+      <StatCard
+        title="Total Views"
+        value={totalViews}
         icon={FaEye}
         delay={0.5}
       />
@@ -65,4 +74,4 @@ const ListingStats = ({ listings }) => {
   );
 };
 
-export default ListingStats; 
+export default ListingStats;

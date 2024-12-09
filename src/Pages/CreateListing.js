@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import Navigation from '../Components/Navigation.js';
-import Location from '../Components/location.js';
-import LoadingSpinner from '../Components/LoadingSpinner.js';
-import AIChatbot from '../Components/AIchatbot.js';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import Navigation from "../Components/Navigation.js";
+import Location from "../Components/location.js";
+import LoadingSpinner from "../Components/LoadingSpinner.js";
+import AIChatbot from "../Components/AIchatbot.js";
 
 const CreateListing = () => {
   const navigate = useNavigate();
@@ -13,47 +13,64 @@ const CreateListing = () => {
   const [images, setImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    category: '',
-    location: '',
-    condition: 'new'
+    title: "",
+    description: "",
+    price: "",
+    category: "",
+    location: "",
+    condition: "new",
   });
-  const [locationValue, setLocationValue] = useState('');
+  const [locationValue, setLocationValue] = useState("");
 
   // Categories with their icons and condition applicability
   const categories = [
-    { value: 'vehicles', label: 'Vehicles', icon: '🚗', hasCondition: true },
-    { value: 'property-sale', label: 'Property For Sale', icon: '🏠', hasCondition: false },
-    { value: 'property-rent', label: 'Property For Rent', icon: '🏢', hasCondition: false },
-    { value: 'electronics', label: 'Electronics', icon: '💻', hasCondition: true },
-    { value: 'business', label: 'Business', icon: '💼', hasCondition: false },
-    { value: 'services', label: 'Services', icon: '🔧', hasCondition: false }
+    { value: "vehicles", label: "Vehicles", icon: "🚗", hasCondition: true },
+    {
+      value: "property-sale",
+      label: "Property For Sale",
+      icon: "🏠",
+      hasCondition: false,
+    },
+    {
+      value: "property-rent",
+      label: "Property For Rent",
+      icon: "🏢",
+      hasCondition: false,
+    },
+    {
+      value: "electronics",
+      label: "Electronics",
+      icon: "💻",
+      hasCondition: true,
+    },
+    { value: "business", label: "Business", icon: "💼", hasCondition: false },
+    { value: "services", label: "Services", icon: "🔧", hasCondition: false },
   ];
 
   // Check if selected category should show condition
   const shouldShowCondition = () => {
-    const selectedCategory = categories.find(cat => cat.value === formData.category);
+    const selectedCategory = categories.find(
+      (cat) => cat.value === formData.category
+    );
     return selectedCategory?.hasCondition || false;
   };
 
   const handleLocationSelect = (location) => {
-    setFormData(prev => ({ ...prev, location }));
+    setFormData((prev) => ({ ...prev, location }));
   };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    setImages(prev => [...prev, ...files]);
+    setImages((prev) => [...prev, ...files]);
 
     // Create preview URLs
-    const newPreviewUrls = files.map(file => URL.createObjectURL(file));
-    setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
+    const newPreviewUrls = files.map((file) => URL.createObjectURL(file));
+    setPreviewUrls((prev) => [...prev, ...newPreviewUrls]);
   };
 
   const removeImage = (index) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -62,29 +79,29 @@ const CreateListing = () => {
     setError(null);
 
     const listingFormData = new FormData();
-    Object.keys(formData).forEach(key => {
+    Object.keys(formData).forEach((key) => {
       listingFormData.append(key, formData[key]);
     });
-    images.forEach(image => {
-      listingFormData.append('images', image);
+    images.forEach((image) => {
+      listingFormData.append("images", image);
     });
 
     try {
-      const response = await fetch('http://localhost:5000/api/listings', {
-        method: 'POST',
+      const response = await fetch("http://localhost:5000/api/listings", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: listingFormData
+        body: listingFormData,
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create listing');
+        throw new Error(data.message || "Failed to create listing");
       }
 
-      navigate('/seller');
+      navigate("/seller");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -99,7 +116,7 @@ const CreateListing = () => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true,
             timeout: 5000,
-            maximumAge: 0
+            maximumAge: 0,
           });
         });
 
@@ -110,55 +127,54 @@ const CreateListing = () => {
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
           );
           const data = await response.json();
-          
-          // Format the location string
-          const locationString = data.display_name;
-          console.log('Location found:', locationString); // Debug log
-          
+
+          // Format the location string to include city and country
+          const city =
+            data.address.city || data.address.town || data.address.village;
+          const country = data.address.country;
+          const locationString = `${city}, ${country}`;
+
           // Update both states
           setLocationValue(locationString);
-          setFormData(prev => ({ ...prev, location: locationString }));
-          
-          // If you have a Location component ref or update function
-          if (handleLocationSelect) {
-            handleLocationSelect(locationString);
-          }
+          setFormData((prev) => ({ ...prev, location: locationString }));
         } catch (error) {
-          console.error('Error fetching location data:', error);
-          alert('Error fetching location data. Please try again.');
+          console.error("Error fetching location data:", error);
+          alert("Error fetching location data. Please try again.");
         }
       } catch (error) {
-        console.error('Geolocation error:', error);
+        console.error("Geolocation error:", error);
         if (error.code === 1) {
-          alert('Please enable location access in your browser settings.');
+          alert("Please enable location access in your browser settings.");
         } else if (error.code === 2) {
-          alert('Location unavailable. Please try again.');
+          alert("Location unavailable. Please try again.");
         } else {
-          alert('Error getting location. Please try again.');
+          alert("Error getting location. Please try again.");
         }
       }
     } else {
-      alert('Geolocation is not supported by your browser.');
+      alert("Geolocation is not supported by your browser.");
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#98cf9a] to-white">
       <Navigation />
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="max-w-4xl mx-auto px-4 py-8"
       >
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-6 md:p-8"
         >
-          <h1 className="text-3xl font-bold text-[#3B4540] mb-8">Create New Listing</h1>
+          <h1 className="text-3xl font-bold text-[#3B4540] mb-8">
+            Create New Listing
+          </h1>
 
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               className="mb-6 p-4 bg-red-50 text-red-600 rounded-md shadow-sm"
@@ -178,7 +194,9 @@ const CreateListing = () => {
                   <motion.button
                     key={cat.value}
                     type="button"
-                    onClick={() => setFormData({ ...formData, category: cat.value })}
+                    onClick={() =>
+                      setFormData({ ...formData, category: cat.value })
+                    }
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
@@ -186,21 +204,24 @@ const CreateListing = () => {
                     whileTap={{ scale: 0.98 }}
                     className={`
                       p-4 rounded-xl border-2 transition-all duration-300 shadow-sm
-                      ${formData.category === cat.value
-                        ? 'border-[#1DB954] bg-[#1DB954]/10 shadow-md'
-                        : 'border-[#D1E7D2] hover:border-[#1DB954] bg-white/50'
+                      ${
+                        formData.category === cat.value
+                          ? "border-[#1DB954] bg-[#1DB954]/10 shadow-md"
+                          : "border-[#D1E7D2] hover:border-[#1DB954] bg-white/50"
                       }
                     `}
                   >
                     <div className="text-3xl mb-2">{cat.icon}</div>
-                    <div className="text-sm font-medium text-[#3B4540]">{cat.label}</div>
+                    <div className="text-sm font-medium text-[#3B4540]">
+                      {cat.label}
+                    </div>
                   </motion.button>
                 ))}
               </div>
             </motion.div>
 
             {/* Form Fields */}
-            <motion.div 
+            <motion.div
               className="space-y-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -215,7 +236,9 @@ const CreateListing = () => {
                   type="text"
                   required
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-[#D1E7D2] rounded-xl 
                     focus:ring-[#1DB954] focus:border-[#1DB954] transition-all duration-300
                     bg-white/50 backdrop-blur-sm group-hover:shadow-md"
@@ -229,7 +252,7 @@ const CreateListing = () => {
                   Location
                 </label>
                 <div className="space-y-2">
-                  <Location 
+                  <Location
                     onLocationFilter={handleLocationSelect}
                     selectedLocation={locationValue || formData.location}
                     className="w-full p-3 border border-[#D1E7D2] rounded-xl 
@@ -258,12 +281,16 @@ const CreateListing = () => {
                   Price
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2 text-[#405449]">$</span>
+                  <span className="absolute left-3 top-2 text-[#405449]">
+                    $
+                  </span>
                   <input
                     type="number"
                     required
                     value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, price: e.target.value })
+                    }
                     className="w-full pl-8 pr-4 py-2 border border-[#D1E7D2] rounded-md focus:ring-[#438951] focus:border-[#438951]"
                     placeholder="0.00"
                     min="0"
@@ -281,11 +308,13 @@ const CreateListing = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <button
                       type="button"
-                      onClick={() => setFormData({ ...formData, condition: 'new' })}
+                      onClick={() =>
+                        setFormData({ ...formData, condition: "new" })
+                      }
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        formData.condition === 'new'
-                          ? 'border-[#438951] bg-[#DFEEE2]'
-                          : 'border-[#D1E7D2] hover:border-[#438951]'
+                        formData.condition === "new"
+                          ? "border-[#438951] bg-[#DFEEE2]"
+                          : "border-[#D1E7D2] hover:border-[#438951]"
                       }`}
                     >
                       <div className="text-xl mb-1">✨</div>
@@ -293,11 +322,13 @@ const CreateListing = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setFormData({ ...formData, condition: 'used' })}
+                      onClick={() =>
+                        setFormData({ ...formData, condition: "used" })
+                      }
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        formData.condition === 'used'
-                          ? 'border-[#438951] bg-[#DFEEE2]'
-                          : 'border-[#D1E7D2] hover:border-[#438951]'
+                        formData.condition === "used"
+                          ? "border-[#438951] bg-[#DFEEE2]"
+                          : "border-[#D1E7D2] hover:border-[#438951]"
                       }`}
                     >
                       <div className="text-xl mb-1">👍</div>
@@ -315,7 +346,9 @@ const CreateListing = () => {
                 <textarea
                   required
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
                   rows="4"
                   className="w-full px-4 py-2 border border-[#D1E7D2] rounded-md focus:ring-[#438951] focus:border-[#438951]"
                   placeholder="Describe your item..."
@@ -327,7 +360,7 @@ const CreateListing = () => {
                 <label className="block text-sm font-medium text-[#3B4540] mb-2">
                   Images
                 </label>
-                <motion.div 
+                <motion.div
                   whileHover={{ scale: 1.01 }}
                   className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 
                     border-[#D1E7D2] border-dashed rounded-xl bg-white/50 
@@ -360,14 +393,16 @@ const CreateListing = () => {
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-[#405449]">PNG, JPG, GIF up to 10MB</p>
+                    <p className="text-xs text-[#405449]">
+                      PNG, JPG, GIF up to 10MB
+                    </p>
                   </div>
                 </motion.div>
 
                 {/* Image Previews */}
                 <AnimatePresence>
                   {previewUrls.length > 0 && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
@@ -405,7 +440,7 @@ const CreateListing = () => {
               </motion.div>
 
               {/* Submit Button */}
-              <motion.div 
+              <motion.div
                 className="pt-4"
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
@@ -418,17 +453,17 @@ const CreateListing = () => {
                     focus:ring-[#1DB954] focus:ring-offset-2 disabled:opacity-50 
                     transition-all duration-300 shadow-md hover:shadow-xl"
                 >
-                  {loading ? <LoadingSpinner /> : 'Create Listing'}
+                  {loading ? <LoadingSpinner /> : "Create Listing"}
                 </button>
               </motion.div>
             </motion.div>
           </form>
         </motion.div>
       </motion.div>
-      
+
       <AIChatbot />
     </div>
   );
 };
 
-export default CreateListing; 
+export default CreateListing;
