@@ -1,16 +1,33 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaStar, FaRegStar, FaEye, FaEnvelope } from "react-icons/fa";
+import LoadingSpinner from "./LoadingSpinner.js";
 
 const ListingItem = ({ listing }) => {
+  const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkFavoriteStatus = async () => {
+      setIsLoading(true);
       try {
-        const response = await fetch(`/api/favorites/${listing._id}`);
-        const data = await response.json();
-        setIsFavorite(data.isFavorite);
+        const response = await fetch(
+          `http://localhost:5000/api/favorites/${listing._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setIsFavorite(data.isFavorite);
+        }
       } catch (error) {
-        console.error('Error checking favorite status:', error);
+        console.error("Error checking favorite status:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -19,95 +36,172 @@ const ListingItem = ({ listing }) => {
     }
   }, [listing]);
 
-  const handleFavoriteClick = async () => {
+  const handleFavoriteClick = async (e) => {
+    e.stopPropagation();
     try {
-      const method = isFavorite ? 'DELETE' : 'POST';
-      const response = await fetch('/api/favorites', {
+      if (!localStorage.getItem("token")) {
+        alert("Please log in to save favorites");
+        return;
+      }
+
+      const method = isFavorite ? "DELETE" : "POST";
+
+      const response = await fetch("http://localhost:5000/api/favorites", {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ listingId: listing._id }),
+        body: JSON.stringify({
+          listingId: listing._id,
+        }),
       });
 
       if (response.ok) {
         setIsFavorite(!isFavorite);
+      } else {
+        const responseData = await response.json();
+        alert(responseData.message || "Failed to update favorite");
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      console.error("Error updating favorite:", error);
+      alert("Error updating favorite");
     }
   };
 
-  if (!listing) return <p className="text-center text-gray-500">Loading...</p>;
+  const handleContactSeller = async (e) => {
+    e.stopPropagation();
 
-  const {
-    title,
-    description,
-    price,
-    category,
-    images,
-    location,
-    status,
-    views,
-  } = listing;
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const token = localStorage.getItem("token");
+
+      if (!user || !token) {
+        alert("Please log in to contact the seller");
+        navigate("/login");
+        return;
+      }
+
+      console.log("Creating chat with:", {
+        customerId: user._id,
+        sellerId: listing.sellerId._id,
+        token: token,
+      });
+
+      const response = await fetch("http://localhost:5000/api/chats", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          customerId: user._id,
+          sellerId: listing.sellerId._id,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Chat creation failed:", errorData);
+        throw new Error(errorData.message || "Failed to create chat");
+      }
+
+      const chat = await response.json();
+      console.log("Created/Retrieved chat:", chat);
+
+      // Navigate to chat page with the chat data
+      navigate("/chat", {
+        state: {
+          chatId: chat._id,
+          sellerId: listing.sellerId._id,
+        },
+      });
+    } catch (error) {
+      console.error("Error creating chat:", error);
+      alert("Failed to start chat. Please try again.");
+    }
+  };
+
+  const handleSellerClick = (e) => {
+    e.stopPropagation();
+    navigate(`/seller/${listing.sellerId._id}`);
+  };
+
+  if (!listing || listing.status !== "Active") return null;
+  if (isLoading) return <LoadingSpinner />;
+
+  const { title, description, price, category, images, location, sellerId } =
+    listing;
 
   return (
-    <div className="max-w-sm mx-auto bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-      {/* Image */}
-      <div className="w-full h-48 overflow-hidden relative">
+    <div className="max-w-sm mx-auto shadow-md rounded-lg overflow-hidden border border-gray-200 transition-all duration-300 hover:shadow-xl bg-white animate-fadeIn">
+      {/* Image Container */}
+      <div className="w-full h-64 overflow-hidden relative group">
         {images && images.length > 0 ? (
           <img
-            src={images[0]}
+            src={`http://localhost:5000${images[0]}`}
             alt={title}
-            className="object-cover w-full h-full"
+            className="object-cover w-full h-full transition-all duration-500 group-hover:scale-105"
+            crossOrigin="anonymous"
+            onLoad={() => setIsLoading(false)}
+            onError={() => setIsLoading(false)}
           />
         ) : (
           <div className="flex items-center justify-center w-full h-full bg-gray-100 text-gray-500">
             No image available
           </div>
         )}
+
+        {/* Favorite button */}
         <button
           onClick={handleFavoriteClick}
-          className="absolute top-2 right-2 p-2 rounded-full bg-white bg-opacity-75 hover:bg-opacity-100 transition-all"
+          className="absolute top-2 right-2 p-2 rounded-full bg-white bg-opacity-75 hover:bg-opacity-100 transition-all z-10"
         >
-          <svg
-            className={`w-6 h-6 ${
-              isFavorite ? 'text-yellow-500 fill-current' : 'text-gray-600'
-            }`}
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
-            />
-          </svg>
+          {isFavorite ? (
+            <FaStar className="w-6 h-6 text-yellow-500" />
+          ) : (
+            <FaRegStar className="w-6 h-6 text-gray-600" />
+          )}
         </button>
       </div>
 
       {/* Details */}
       <div className="p-4">
-        <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+        <h2 className="text-lg font-bold text-[#557C55]">{title}</h2>
         <p className="text-sm text-gray-500 mb-2">Category: {category}</p>
+        <p className="text-sm text-gray-500 mb-2">
+          Listed by:{" "}
+          <span
+            onClick={handleSellerClick}
+            className="text-[#557C55] hover:text-[#A6CF98] cursor-pointer"
+          >
+            {typeof sellerId === "object" ? sellerId.name : "Unknown Seller"}
+          </span>
+        </p>
         <p className="text-gray-700 text-sm line-clamp-3">{description}</p>
-        <p className="text-lg text-green-600 font-semibold mt-2">
-          ${price.toFixed(2)}
+        <p className="text-lg text-[#1DB954] font-semibold mt-2">
+          ${typeof price === "number" ? price.toFixed(2) : price}
         </p>
         <p className="text-sm text-gray-500">Location: {location}</p>
-        <p className="text-sm text-gray-500">Status: {status}</p>
-        <p className="text-sm text-gray-400">Views: {views}</p>
       </div>
 
       {/* Actions */}
       <div className="flex items-center justify-between p-4 border-t border-gray-200">
-        <button className="bg-blue-500 text-white text-sm px-4 py-2 rounded hover:bg-blue-600">
-          View Details
+        <button
+          className="flex items-center px-4 py-2 bg-[#557C55] text-white rounded-md hover:bg-[#A6CF98] transition-colors"
+          title="View Details"
+        >
+          <FaEye className="text-lg" />
+          <span className="ml-2 text-sm">View</span>
         </button>
-        <button className="bg-green-500 text-white text-sm px-4 py-2 rounded hover:bg-green-600">
-          Contact Seller
+
+        <button
+          onClick={handleContactSeller}
+          className="flex items-center px-4 py-2 bg-[#1DB954] text-white rounded-md hover:bg-[#1ed760] transition-colors"
+          title="Contact Seller"
+        >
+          <FaEnvelope className="text-lg" />
+          <span className="ml-2 text-sm">Contact</span>
         </button>
       </div>
     </div>
